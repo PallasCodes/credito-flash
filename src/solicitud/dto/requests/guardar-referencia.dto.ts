@@ -27,11 +27,11 @@ export class ReferenciaDto {
 
   @IsOptional()
   @IsString()
-  telefono?: string
+  telefono?: string | null = null
 
   @IsOptional()
   @IsString()
-  celular?: string
+  celular?: string | null = null
 
   @IsInt()
   antanios: number

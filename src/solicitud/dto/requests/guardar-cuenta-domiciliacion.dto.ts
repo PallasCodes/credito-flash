@@ -31,19 +31,19 @@ class CuentaDto {
 
   @IsOptional()
   @IsString()
-  sucursal?: string
+  sucursal?: string | null = null
 
   @IsOptional()
   @IsString()
-  cuenta?: string
+  cuenta?: string | null = null
 
   @IsOptional()
   @IsString()
-  numerotarjeta?: string
+  numerotarjeta?: string | null = null
 
   @IsOptional()
   @IsString()
-  clabe?: string
+  clabe?: string | null = null
 
   @IsBoolean()
   mismacuenta: boolean

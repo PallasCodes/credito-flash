@@ -21,11 +21,16 @@ export class Message {
 }
 
 export class CustomResponse {
-  mensaje: Message
-  data?: any
+  mensaje: Message;
+  [key: string]: any // Index signature
 
-  constructor(mensaje: Message, data?: any) {
+  constructor(mensaje: Message, additionalFields?: { [key: string]: any }) {
     this.mensaje = mensaje
-    this.data = data
+
+    if (additionalFields) {
+      Object.keys(additionalFields).forEach((key) => {
+        this[key] = additionalFields[key]
+      })
+    }
   }
 }

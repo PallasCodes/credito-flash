@@ -23,7 +23,7 @@ class DomicilioDto {
 
   @IsString()
   @IsOptional()
-  interior?: string | null
+  interior?: string | null = null
 
   @IsString()
   @Length(5, 5)
@@ -40,7 +40,7 @@ class DomicilioDto {
 
   @IsString()
   @IsOptional()
-  entrecalles?: string | null
+  entrecalles?: string | null = null
 
   @IsString()
   ciudad: string
@@ -58,11 +58,11 @@ class DomicilioDto {
 
   @IsOptional()
   @IsString()
-  latitud?: string | null
+  latitud?: string | null = null
 
   @IsOptional()
   @IsString()
-  longitud?: string | null
+  longitud?: string | null = null
 }
 
 export class GuardarDomicilioDto extends BaseRequestDto {

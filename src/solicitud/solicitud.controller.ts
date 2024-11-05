@@ -13,6 +13,7 @@ import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
 import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referencias.dto'
 import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
 import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
+import { ContinuarProcesoDto } from './dto/requests/continuar-proceso.dto'
 
 @Controller('solicitud')
 export class SolicitudController {
@@ -80,5 +81,10 @@ export class SolicitudController {
   @Post('guardar-info-financiera')
   guardarInfoFinanciera(@Body() guardarInfofinancieraDto: GuardarInfoFinancieraDto) {
     return this.solicitudService.guardarInfoFinanciera(guardarInfofinancieraDto)
+  }
+
+  @Post('continuar-proceso')
+  continuarProceso(@Body() continuarProcesoDto: ContinuarProcesoDto) {
+    return this.solicitudService.continuarProceso(continuarProcesoDto)
   }
 }

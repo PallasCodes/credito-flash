@@ -33,7 +33,8 @@ class ContactoDto {
   idtipo: number
 
   @IsNumber()
-  idformato: number
+  @IsOptional()
+  idformato?: number | null = 1
 }
 
 export class RegistrarContactoDto extends BaseRequestDto {

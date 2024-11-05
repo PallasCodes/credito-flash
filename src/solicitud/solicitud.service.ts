@@ -16,6 +16,7 @@ import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
 import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referencias.dto'
 import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
 import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
+import { ContinuarProcesoDto } from './dto/requests/continuar-proceso.dto'
 
 @Injectable()
 export class SolicitudService {
@@ -40,7 +41,7 @@ export class SolicitudService {
       `)
 
     if (!response.length || !response[0].resultcode) {
-      return 'No se puede iniciar el proceso de captura...'
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
     if (response[0].resultcode <= 0) {
       switch (response[0].resultcode) {
@@ -61,7 +62,7 @@ export class SolicitudService {
       `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = 18012`,
     )
 
-    return response2
+    return new CustomResponse(new Message(), { solicitudcredito: response2[0] })
   }
 
   async guardarInfoPersonal({
@@ -80,23 +81,22 @@ export class SolicitudService {
       `)
 
     if (!response.length || !response[0].resultcode) {
-      return 'No se puedo guardar la información personal, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
 
-    switch (response[0].resultcode) {
-      case 1:
-        return 'Información personal actualizada correctamente'
-      case 2:
-        return 'Información personal guardada correctamente'
-      case -1:
-        return 'La solicitud no es válida o ya no se encuentra disponible para edición'
-      case -2:
-        return 'No se puede registrar el nuevo cliente'
-      case -3:
-        return 'No se puede registrar el nuevo cliente porque ya existe uno con el mismo RFC'
-      default:
-        return 'No se puedo guardar la información personal, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
+    const catMessages = {
+      '1': 'Información personal actualizada correctamente',
+      '2': 'Información personal guardada correctamente',
+      '-1': 'La solicitud no es válida o ya no se encuentra disponible para edición',
+      '-2': 'No se puede registrar el nuevo cliente',
+      '-3': 'No se puede registrar el nuevo cliente porque ya existe uno con el mismo RFC',
     }
+
+    let mensaje =
+      catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
+    let error = response[0].resultcode <= 0
+
+    return new CustomResponse(new Message(mensaje, error))
   }
 
   async guardarDatosIdentificacion({
@@ -115,7 +115,7 @@ export class SolicitudService {
       `)
 
     if (!response.length || !response[0].resultcode) {
-      return 'No se puedo guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
 
     let mensaje: string
@@ -315,7 +315,7 @@ export class SolicitudService {
         }
       })
 
-      return new CustomResponse(new Message(mensaje, error), contactos)
+      return new CustomResponse(new Message(mensaje, error), { contactos })
     }
 
     return new CustomResponse(new Message(mensaje, error))
@@ -387,7 +387,7 @@ export class SolicitudService {
           @idreferencia = ${null}`,
       )
 
-      return new CustomResponse(new Message(mensaje, error), referencias)
+      return new CustomResponse(new Message(mensaje, error), { referencias })
     }
 
     return new CustomResponse(new Message(mensaje, error))
@@ -487,4 +487,6 @@ export class SolicitudService {
 
     return new CustomResponse(new Message(mensaje, error))
   }
+
+  continuarProceso({}: ContinuarProcesoDto) {}
 }

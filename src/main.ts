@@ -3,6 +3,7 @@ import { Logger, ValidationPipe } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 import { AppModule } from './app.module'
+import { UndefinedToNullInterceptor } from './solicitud/interceptors/undefinedToNull.interceptor'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -10,9 +11,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api')
 
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-  )
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+
+  app.enableCors()
+
+  // app.useGlobalInterceptors(new UndefinedToNullInterceptor())
 
   const config = new DocumentBuilder()
     .setTitle('Twitter')

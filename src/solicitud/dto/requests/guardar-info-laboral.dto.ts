@@ -40,7 +40,7 @@ class InfoLaboralDto {
 
   @IsString()
   @IsOptional()
-  extensiontrabajo?: string
+  extensiontrabajo?: string | null = null
 }
 
 export class GuardarInfoLaboralDto extends BaseRequestDto {
