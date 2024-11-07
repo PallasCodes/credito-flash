@@ -13,7 +13,10 @@ import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
 import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referencias.dto'
 import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
 import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
-import { ContinuarProcesoDto } from './dto/requests/continuar-proceso.dto'
+import { BaseRequestDto } from './dto/requests/base-request.dto'
+import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
+import { ActualizarTrainProcessDto } from './dto/requests/actualizar-train-process.dto'
+import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-orden.to'
 
 @Controller('solicitud')
 export class SolicitudController {
@@ -83,8 +86,25 @@ export class SolicitudController {
     return this.solicitudService.guardarInfoFinanciera(guardarInfofinancieraDto)
   }
 
-  @Post('continuar-proceso')
-  continuarProceso(@Body() continuarProcesoDto: ContinuarProcesoDto) {
-    return this.solicitudService.continuarProceso(continuarProcesoDto)
+  @Post('obtener-promociones-disponibles')
+  obtenerPromocionesDisponibles(@Body() solicitudV3IdDto: BaseRequestDto) {
+    return this.solicitudService.obtenerPromocionesDisponibles(solicitudV3IdDto)
+  }
+
+  @Post('seleccionar-promocion')
+  seleccionarPromocion(@Body() seleccionarPromocionDto: SeleccionarPromocionDto) {
+    return this.solicitudService.seleccionarPromocion(seleccionarPromocionDto)
+  }
+
+  @Post('actualizar-train-process')
+  actualizarTrainProcess(@Body() actualizarTrainProcessDto: ActualizarTrainProcessDto) {
+    return this.solicitudService.actualizarTrainProcess(actualizarTrainProcessDto)
+  }
+
+  @Post('guardar-condiciones-orden')
+  guardarCondicionesOrden(
+    @Body() guardarCondicionesOrdenDto: GuardarCondicionesOrdenDto,
+  ) {
+    return this.solicitudService.guardarCondicionesOrden(guardarCondicionesOrdenDto)
   }
 }

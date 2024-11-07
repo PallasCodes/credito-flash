@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from './auth/auth.module'
 import { SolicitudModule } from './solicitud/solicitud.module'
+import { CatalogosModule } from './catalogos/catalogos.module';
+import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -19,6 +21,8 @@ import { SolicitudModule } from './solicitud/solicitud.module'
     }),
     AuthModule,
     SolicitudModule,
+    CatalogosModule,
+    SolicitudesFlashModule,
   ],
   // providers: [StoredProcedureService, DatabaseConfig],
 })

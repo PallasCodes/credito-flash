@@ -17,6 +17,10 @@ import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referenci
 import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
 import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
 import { ContinuarProcesoDto } from './dto/requests/continuar-proceso.dto'
+import { BaseRequestDto } from './dto/requests/base-request.dto'
+import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
+import { ActualizarTrainProcessDto } from './dto/requests/actualizar-train-process.dto'
+import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-orden.to'
 
 @Injectable()
 export class SolicitudService {
@@ -58,11 +62,11 @@ export class SolicitudService {
       }
     }
 
-    const response2 = await this.manager.query(
+    const [solicitudcredito] = await this.manager.query(
       `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = 18012`,
     )
 
-    return new CustomResponse(new Message(), { solicitudcredito: response2[0] })
+    return new CustomResponse(new Message(), { solicitudcredito })
   }
 
   async guardarInfoPersonal({
@@ -488,5 +492,169 @@ export class SolicitudService {
     return new CustomResponse(new Message(mensaje, error))
   }
 
-  continuarProceso({}: ContinuarProcesoDto) {}
+  async obtenerPromocionesDisponibles({ solicitudv3 }: BaseRequestDto) {
+    const promociones = await this.manager.query(`
+      EXEC v3.sp_a123BuscarPromocionesDisponibles
+        @idsolicitud = ${solicitudv3.idsolicitud}
+      `)
+
+    if (!promociones || !promociones.length) {
+      return new CustomResponse(
+        new Message(
+          'No hay promociones disponibles para las condiciones seleccionadas',
+          true,
+        ),
+      )
+    }
+
+    return new CustomResponse(new Message(), { promociones })
+  }
+
+  async seleccionarPromocion({ promocion, solicitudv3 }: SeleccionarPromocionDto) {
+    const response = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123SeleccionarPromocion
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @idpromocion = ${promocion.idpromocion},
+        @resultcode = @resultcode OUTPUT;
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (!response.length || !response[0].resultcode) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
+    const catMessages = {
+      '1': 'Ok',
+      '-1': 'La solicitud no es válida o ya no se encuentra disponible para edición',
+      '-2': 'La clave de promoción enviada no es válida',
+    }
+
+    if (response[0].resultcode === 1) {
+      await this.manager.query(`
+        DECLARE @resultcode INT;
+        EXEC v3.sp_a123CalcularImportesSolicitud
+          @idsolicitud = ${solicitudv3.idsolicitud},
+          @resultcode = @resultcode OUTPUT;
+        SELECT @resultcode AS resultcode;
+        `)
+
+      // TODO: make idpersonal env var
+
+      const [solicitudcredito] = await this.manager.query(`
+        EXEC v3.sp_a123getSolicitudV3ById
+          @idsolicitud = ${solicitudv3.idsolicitud},
+          @idpersonal = 18017;
+        `)
+
+      const [datos] = await this.manager.query(`
+        EXEC v3.sp_a123getDatosSolicitudV3ById
+          @idsolicitud = ${solicitudv3.idsolicitud},
+          @trainprocess = 11;
+        `)
+
+      return new CustomResponse(new Message('Ok'), {
+        solicitudcredito: { ...solicitudcredito, datos },
+      })
+    }
+
+    let mensaje =
+      catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
+    let error = response[0].resultcode <= 0
+
+    return new CustomResponse(new Message(mensaje, error))
+  }
+
+  async actualizarTrainProcess(actualizarTrainProcessDto: ActualizarTrainProcessDto) {
+    const queryParams = createQueryParams(actualizarTrainProcessDto, true)
+
+    const response = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC web.sp_flash_actualizarTrainProcess
+        ${queryParams};
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
+    return new CustomResponse(new Message())
+  }
+
+  async guardarCondicionesOrden({
+    solicitudv3,
+    datos11condiciones,
+  }: GuardarCondicionesOrdenDto) {
+    const [solicitudcredito] = await this.manager.query(
+      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = 18012`,
+    )
+
+    const { importesolicitado, idpromocion, deudaexterna, ...condiciones } =
+      datos11condiciones
+
+    const queryParams = createQueryParams(
+      {
+        ...condiciones,
+        periodosiniciomanuales: solicitudcredito.periodosiniciomanuales,
+      },
+      true,
+    )
+
+    const response = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123GuardarCondiciones
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @idpersonal = 18017,
+        ${queryParams};
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
+    // CONDICIONES GUARDADAS CORRECTAMENTE
+    if (solicitudcredito.pagodeuda) {
+      const queryDeudaParams = createQueryParams(deudaexterna, true)
+
+      await this.manager.query(`
+        DECLARE @resultcode INT;
+        EXEC v3.sp_a123GuardarDatosDeudaExterna
+          @idsolicitud = ${solicitudv3.idsolicitud},
+          ${queryDeudaParams};
+        SELECT @resultcode AS resultcode;
+      `)
+    }
+
+    if (solicitudcredito.precaptura) {
+      const [resultadoRegistrarOrden] = await this.manager.query(`
+        DECLARE @resultcode INT;
+        EXEC v3.sp_a123RegistrarOrden
+          @idsolicitud = ${solicitudv3.idsolicitud},
+          @idpersonal = 18017,
+          @resultcode = @resultcode OUTPUT;
+        SELECT @resultcode AS resultcode;
+      `)
+
+      if (resultadoRegistrarOrden.resultcode !== 1) {
+        return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+      }
+
+      // const solicitud = ''
+      // getSolicitudById
+      // mig_pasarOrden_3_AL_2_ByIdorden
+    } else {
+      // solicitud = getSolicitudById
+      // mig_actualizarCambiosOrden_3_AL_2_ByIdorden
+      // TODO: checar si es necesario migrar
+    }
+
+    const [solicitud] = await this.manager.query(
+      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = 18012`,
+    )
+
+    return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })
+  }
+  // TODO: implementar validaciones existentes en el 3.0
 }
