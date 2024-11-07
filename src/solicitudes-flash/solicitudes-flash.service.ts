@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
+import * as bcrypt from 'bcrypt'
 
 import { ValidarCodigoCelularDto } from './dto/validar-codigo-celular'
 import { createQueryParams } from 'src/utils/createQueryParams'
@@ -40,6 +41,7 @@ export class SolicitudesFlashService {
   }
 
   async registrarContrasenia(dto: RegistrarContraseniaDto) {
+    dto.password = bcrypt.hashSync(dto.password, 10)
     const queryParams = createQueryParams(dto, true)
 
     const response = await this.manager.query(`
@@ -77,8 +79,6 @@ export class SolicitudesFlashService {
         @resultcode = @resultcode OUTPUT;
       SELECT @resultcode AS resultcode;
       `)
-
-    console.log(response)
 
     if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
       // TODO: eliminar código depués de validarlo

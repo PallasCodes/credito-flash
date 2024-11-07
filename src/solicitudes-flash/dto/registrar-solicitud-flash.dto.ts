@@ -1,4 +1,13 @@
-import { IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator'
+import {
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Length,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator'
 
 export class RegistrarSolicitudFlashDto {
   @IsString()
@@ -22,4 +31,11 @@ export class RegistrarSolicitudFlashDto {
   @IsString()
   @IsOptional()
   codigo?: string | null = null
+
+  @IsInt()
+  @IsPositive()
+  importeSolicitado: number
+
+  @IsInt()
+  idPromocion: number
 }
