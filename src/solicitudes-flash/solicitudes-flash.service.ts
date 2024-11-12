@@ -99,7 +99,7 @@ export class SolicitudesFlashService {
       `)
 
     return new CustomResponse(new Message(), {
-      idPersonafisica: response[0]?.idPersonaFisica || null,
+      idPersonaFisica: response[0]?.idPersonaFisica || null,
     })
   }
 }
