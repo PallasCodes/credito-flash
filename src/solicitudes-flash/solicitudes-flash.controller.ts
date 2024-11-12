@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 
 import { SolicitudesFlashService } from './solicitudes-flash.service'
 import { ValidarCodigoCelularDto } from './dto/validar-codigo-celular'
@@ -26,5 +26,10 @@ export class SolicitudesFlashController {
   @Post('validar-codigo-celular')
   validarCodigoCelular(@Body() validarCodigoCelularDto: ValidarCodigoCelularDto) {
     return this.solicitudesFlashService.validarCodigoCelular(validarCodigoCelularDto)
+  }
+
+  @Get('buscar-rfc/:rfc')
+  buscarRfc(@Param('rfc') rfc: string) {
+    return this.solicitudesFlashService.buscarRfc(rfc)
   }
 }

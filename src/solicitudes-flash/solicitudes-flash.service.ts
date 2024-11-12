@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 
@@ -86,5 +86,20 @@ export class SolicitudesFlashService {
     }
 
     return new CustomResponse(new Message('Tu número celular ha sido validado'))
+  }
+
+  async buscarRfc(rfc: string) {
+    if (!rfc || rfc.trim() == '') {
+      return new BadRequestException('EL RFC es requerido')
+    }
+
+    const response = await this.manager.query(`
+      EXEC web.sp_buscarRFC
+        @rfc = ${rfc.toUpperCase()};
+      `)
+
+    return new CustomResponse(new Message(), {
+      idPersonafisica: response[0]?.idPersonaFisica || null,
+    })
   }
 }
