@@ -14,7 +14,9 @@ import { User } from 'src/auth/entities/user.entity'
 export class SolicitudesFlashService {
   constructor(private manager: EntityManager) {}
 
-  async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto) {
+  async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
+    console.log(user)
+
     const codigo = Math.floor(100000 + Math.random() * 900000).toString()
     dto.codigo = codigo
     const queryParams = createQueryParams(dto, true)

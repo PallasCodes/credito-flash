@@ -13,7 +13,13 @@ export class User {
   @JoinColumn({ name: 'idPersonaFisica' })
   personaFisica: PersonaFisica
 
-  @Column({ type: 'varchar', length: 250, nullable: true, name: 'contrasena' })
+  @Column({
+    type: 'varchar',
+    length: 250,
+    nullable: true,
+    name: 'contrasena',
+    select: false,
+  })
   contrasena: string
 
   @Column({ type: 'varchar', length: 12, nullable: true, name: 'celular' })
