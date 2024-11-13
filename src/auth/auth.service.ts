@@ -23,15 +23,15 @@ export class AuthService {
 
   async register(createUserDto: CreateUserDto) {
     try {
-      const { password, ...userData } = createUserDto
+      const { contrasena, ...userData } = createUserDto
 
       const user = this.userRepository.create({
         ...userData,
-        password: bcrypt.hashSync(password, 10),
+        contrasena: bcrypt.hashSync(contrasena, 10),
       })
       await this.userRepository.save(user)
 
-      delete user.password
+      delete user.contrasena
       return { ...user, token: this.getJwtToken({ id: user.id }) }
     } catch (error) {
       this.handleDBErrors(error)
@@ -39,16 +39,16 @@ export class AuthService {
   }
 
   async login(loginUserDto: LoginUserDto) {
-    const { password, email } = loginUserDto
+    const { contrasena, rfc } = loginUserDto
 
     const user = await this.userRepository.findOne({
-      where: { email },
-      select: { email: true, password: true, id: true },
+      where: { rfc },
+      select: { rfc: true, contrasena: true, id: true },
     })
 
     if (!user) throw new UnauthorizedException('Credenciales no válidas')
 
-    if (!bcrypt.compareSync(password, user.password))
+    if (!bcrypt.compareSync(contrasena, user.contrasena))
       throw new UnauthorizedException('Credenciales no válidas')
 
     return { ...user, token: this.getJwtToken({ id: user.id }) }

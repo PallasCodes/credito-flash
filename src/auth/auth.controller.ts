@@ -12,7 +12,7 @@ export class AuthController {
 
   @ApiResponse({ status: 201, description: 'User was registered', type: User })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @Post('register')
+  @Post('signup')
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto)
   }
