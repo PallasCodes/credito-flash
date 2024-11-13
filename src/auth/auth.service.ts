@@ -14,21 +14,31 @@ import { User } from './entities/user.entity'
 import { CreateUserDto, LoginUserDto } from './dto'
 import { JwtPayload } from './interfaces/jwt-payload.interface'
 import { CustomResponse, Message } from 'src/utils/customResponse'
+import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(PersonaFisica)
+    private readonly personaFisicaRepository: Repository<PersonaFisica>,
     private readonly jwtService: JwtService,
   ) {}
 
   async register(createUserDto: CreateUserDto) {
     try {
-      const { contrasena, ...userData } = createUserDto
+      const { contrasena, rfc } = createUserDto
+
+      const personaFisica = await this.personaFisicaRepository.findOneBy({ rfc })
+
+      if (!personaFisica) {
+        return new BadRequestException('No existe un cliente con este RFC')
+      }
 
       const user = this.userRepository.create({
-        ...userData,
+        rfc,
         contrasena: bcrypt.hashSync(contrasena, 10),
+        personaFisica,
       })
       await this.userRepository.save(user)
 
