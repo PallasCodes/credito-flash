@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt'
 import { User } from './entities/user.entity'
 import { CreateUserDto, LoginUserDto } from './dto'
 import { JwtPayload } from './interfaces/jwt-payload.interface'
+import { CustomResponse, Message } from 'src/utils/customResponse'
 
 @Injectable()
 export class AuthService {
@@ -51,7 +52,13 @@ export class AuthService {
     if (!bcrypt.compareSync(contrasena, user.contrasena))
       throw new UnauthorizedException('Credenciales no válidas')
 
-    return { ...user, token: this.getJwtToken({ id: user.id }) }
+    // TODO: refac custom message so that sending a new instance of message isnt required
+    // TODO: return idPersonaFisica, use transaction
+
+    return new CustomResponse(new Message('Sesión iniciada'), {
+      ...user,
+      token: this.getJwtToken({ id: user.id }),
+    })
   }
 
   private getJwtToken(payload: JwtPayload) {

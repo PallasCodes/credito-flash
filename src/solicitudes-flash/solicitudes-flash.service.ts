@@ -8,6 +8,7 @@ import { CustomResponse, Message } from 'src/utils/customResponse'
 import { SolicitudService } from 'src/solicitud/solicitud.service'
 import { RegistrarContraseniaDto } from './dto/registrar-contrasenia.dto'
 import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
+import { User } from 'src/auth/entities/user.entity'
 
 @Injectable()
 export class SolicitudesFlashService {
