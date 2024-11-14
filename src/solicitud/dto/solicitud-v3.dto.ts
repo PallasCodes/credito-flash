@@ -2,14 +2,14 @@ import { IsNumber } from 'class-validator'
 
 export class SolicitudV3Dto {
   @IsNumber()
-  readonly idproductoscc: number
+  idproductoscc: number
 
   @IsNumber()
-  readonly idtipoorden: number
+  idtipoorden: number
 
   @IsNumber()
-  readonly idpersonafisica: number
+  idpersonafisica: number
 
   @IsNumber()
-  readonly idvendedor: number
+  idvendedor: number
 }
