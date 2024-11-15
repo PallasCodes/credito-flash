@@ -3,8 +3,8 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AuthModule } from './auth/auth.module'
 import { SolicitudModule } from './solicitud/solicitud.module'
-import { CatalogosModule } from './catalogos/catalogos.module';
-import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module';
+import { CatalogosModule } from './catalogos/catalogos.module'
+import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module'
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -17,13 +17,13 @@ import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.mo
       password: process.env.DB_PASSWORD,
       autoLoadEntities: true,
       synchronize: false,
-      options: { encrypt: false },
+      options: { encrypt: false, trustServerCertificate: true },
+      extra: { requestTimeout: 50000 }, // 50 segundos}
     }),
     AuthModule,
     SolicitudModule,
     CatalogosModule,
     SolicitudesFlashModule,
   ],
-  // providers: [StoredProcedureService, DatabaseConfig],
 })
 export class AppModule {}

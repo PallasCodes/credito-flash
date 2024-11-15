@@ -1,44 +1,35 @@
-import { ApiProperty } from '@nestjs/swagger'
-import {
-  BeforeInsert,
-  BeforeUpdate,
-  Column,
-  Entity,
-  PrimaryGeneratedColumn,
-} from 'typeorm'
+import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm'
 
-@Entity('users')
+@Entity({ name: 'usuarioCreditoFlash', schema: 'web' })
 export class User {
-  @ApiProperty({
-    example: 'cd533345-f1f3-48c9-a62e-7dc2da50c8f8',
-    uniqueItems: true,
+  @PrimaryGeneratedColumn({ name: 'idUsuarioCreditoFlash', type: 'int' })
+  id: number
+
+  @Column({ type: 'varchar', length: 13, nullable: true, name: 'rfc' })
+  rfc: string
+
+  @OneToOne(() => PersonaFisica)
+  @JoinColumn({ name: 'idPersonaFisica' })
+  personaFisica: PersonaFisica
+
+  @Column({
+    type: 'varchar',
+    length: 250,
+    nullable: true,
+    name: 'contrasena',
+    select: false,
   })
-  @PrimaryGeneratedColumn('uuid')
-  id: string
+  contrasena: string
 
-  @ApiProperty()
-  @Column('text')
-  username: string
+  @Column({ type: 'varchar', length: 12, nullable: true, name: 'celular' })
+  celular: string
 
-  @ApiProperty()
-  @Column('text', { unique: true })
-  email: string
-
-  @ApiProperty()
-  @Column('text', { select: false })
-  password: string
-
-  @ApiProperty()
-  @Column('text', { array: true, default: ['user'] })
-  roles: string[]
-
-  @BeforeInsert()
-  checkFieldsBeforeInsert() {
-    this.email = this.email.toLocaleLowerCase().trim()
-  }
-
-  @BeforeUpdate()
-  checkFieldsBeforeUpdate() {
-    this.checkFieldsBeforeInsert()
-  }
+  @Column({
+    type: 'datetime',
+    default: () => 'getdate()',
+    nullable: true,
+    name: 'fechaCreacion',
+  })
+  fechaCreacion: Date
 }

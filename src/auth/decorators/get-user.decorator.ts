@@ -4,14 +4,11 @@ import {
   createParamDecorator,
 } from '@nestjs/common'
 
-export const GetUser = createParamDecorator(
-  (data: string, ctx: ExecutionContext) => {
-    const req = ctx.switchToHttp().getRequest()
-    const user = req.user
+export const GetUser = createParamDecorator((data: string, ctx: ExecutionContext) => {
+  const req = ctx.switchToHttp().getRequest()
+  const user = req.user
 
-    if (!user)
-      throw new InternalServerErrorException('Object User not found on request')
+  if (!user) return null
 
-    return !data ? user : user[data]
-  },
-)
+  return !data ? user : user[data]
+})

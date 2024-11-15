@@ -4,6 +4,7 @@ import { ApiResponse, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { CreateUserDto, LoginUserDto } from './dto'
 import { User } from './entities/user.entity'
+import { CreateUserByRfcDto } from './dto/create-user.dto'
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -12,7 +13,7 @@ export class AuthController {
 
   @ApiResponse({ status: 201, description: 'User was registered', type: User })
   @ApiResponse({ status: 400, description: 'Bad request' })
-  @Post('register')
+  @Post('signup')
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto)
   }
@@ -22,5 +23,12 @@ export class AuthController {
   @Post('login')
   login(@Body() loginUserDto: LoginUserDto) {
     return this.authService.login(loginUserDto)
+  }
+
+  @ApiResponse({ status: 201, description: 'User was registered', type: User })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @Post('signup-by-rfc')
+  registerByRfc(@Body() createUserByRfc: CreateUserByRfcDto) {
+    return this.authService.registerUserByRfc(createUserByRfc)
   }
 }
