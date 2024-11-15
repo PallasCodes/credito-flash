@@ -18,3 +18,9 @@ export class CreateUserDto {
   @IsInt()
   idPersonaFisica: number
 }
+
+export class CreateUserByRfcDto {
+  @IsString()
+  @Length(13, 13)
+  rfc: string
+}

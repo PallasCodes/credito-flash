@@ -18,6 +18,7 @@ import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.mo
       autoLoadEntities: true,
       synchronize: false,
       options: { encrypt: false, trustServerCertificate: true },
+      extra: { requestTimeout: 50000 }, // 50 segundos}
     }),
     AuthModule,
     SolicitudModule,

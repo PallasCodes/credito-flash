@@ -15,8 +15,7 @@ export class SolicitudesFlashService {
   constructor(private manager: EntityManager) {}
 
   async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString()
-    dto.codigo = codigo
+    dto.codigo = Math.floor(100000 + Math.random() * 900000).toString()
     const queryParams = createQueryParams(dto, true)
 
     const response = await this.manager.query(`
@@ -26,13 +25,8 @@ export class SolicitudesFlashService {
       SELECT @resultcode AS resultcode;
       `)
 
-    const msg = `'Tu código de verificación Intermercado es: ${codigo}'`
-
-    await this.manager.query(`
-      SELECT dbo.fn_Sms(
-        ${dto.celular},
-        ${msg}
-      );`)
+    const msg = `'Tu código de verificación Intermercado es: ${dto.codigo}'`
+    await this.manager.query(`SELECT dbo.fn_Sms(${dto.celular}, ${msg});`)
 
     if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
       return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
