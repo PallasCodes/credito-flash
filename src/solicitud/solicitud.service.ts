@@ -29,9 +29,9 @@ export class SolicitudService {
 
   constructor(private manager: EntityManager) {}
 
-  async iniciarSolicitud({ solicitudv3 }: IniciarSolicitudDto, user?: User) {
+  async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
     if (user) {
-      solicitudv3.idpersonafisica = user.personaFisica.id
+      solicitudv3.idpersonafisica = user?.personaFisica?.id
     }
 
     const response = await this.manager.query(`
@@ -43,7 +43,7 @@ export class SolicitudService {
         @idpersonafisica = ${solicitudv3.idpersonafisica}, 
         @idvendedor = 18012,
         @idpersonalcaptura = 18012,
-        @nuevocliente = ${user.personaFisica.id ? 0 : 1}, 
+        @nuevocliente = ${null}, 
         @resultcode = @resultcode OUTPUT;
       SELECT @resultcode AS resultcode;
       `)
@@ -51,6 +51,7 @@ export class SolicitudService {
     if (!response.length || !response[0].resultcode) {
       return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
+
     if (response[0].resultcode <= 0) {
       switch (response[0].resultcode) {
         case -1:
@@ -69,6 +70,39 @@ export class SolicitudService {
     const [solicitudcredito] = await this.manager.query(
       `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = 18012`,
     )
+
+    if (user && identidad) {
+      console.log(identidad, solicitudcredito.idSolicitud)
+      const clientes = await this.manager.query(`
+        EXEC web.flash_getConveniosByIdsolicitud
+          @idsolicitud = ${solicitudcredito.idSolicitud}, 
+          @identidad = ${identidad};
+        `)
+
+      if (clientes.length > 0) {
+        const params = createQueryParams(
+          {
+            ...clientes[0],
+            fechacontratacion: '2024-10-10',
+          },
+          true,
+        )
+
+        const response = await this.manager.query(`
+          DECLARE @resultcode INT;
+          EXEC v3.sp_a123GuardarInfoLaboral
+            @idsolicitud = ${solicitudcredito.idSolicitud},
+            @idpersonal = 18017,
+            ${params};
+          SELECT @resultcode AS resultcode;
+          `)
+
+        return new CustomResponse(new Message(), {
+          solicitudcredito,
+          convenioRegistrado: true,
+        })
+      }
+    }
 
     return new CustomResponse(new Message(), { solicitudcredito })
   }
