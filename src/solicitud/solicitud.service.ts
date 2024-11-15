@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
 
-import { createQueryParams } from 'src/utils/createQueryParams'
-import { IniciarSolicitudDto } from './dto/requests/iniciar-solicitud.dto'
-import { GuardarInfoPersonalDto } from './dto/requests/guardar-info-personal.dto'
-import { GuardarDatosIdentificacionDto } from './dto/requests/guardar-datos-identificacion.dto'
-import { GuardarInfoLaboralDto } from './dto/requests/guardar-info-laboral.dto'
-import { CustomResponse, Message } from 'src/utils/customResponse'
-import { GuardarCentroTrabajoDto } from './dto/requests/guardar-centro-trabajo.dto'
-import { GuardarDomicilioDto } from './dto/requests/guardar-domicilio.dto'
-import { RegistrarContactoDto } from './dto/requests/registrar-contacto.dto'
+import { User } from 'src/auth/entities/user.entity'
 import { Contacto } from 'src/types/contacto.interface'
-import { GuardarInfoContactosDto } from './dto/requests/guardar-info-contactos.dto'
-import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
-import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referencias.dto'
-import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
-import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
-import { ContinuarProcesoDto } from './dto/requests/continuar-proceso.dto'
-import { BaseRequestDto } from './dto/requests/base-request.dto'
-import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
+import { createQueryParams } from 'src/utils/createQueryParams'
+import { CustomResponse, Message } from 'src/utils/customResponse'
 import { ActualizarTrainProcessDto } from './dto/requests/actualizar-train-process.dto'
+import { BaseRequestDto } from './dto/requests/base-request.dto'
+import { GuardarCentroTrabajoDto } from './dto/requests/guardar-centro-trabajo.dto'
 import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-orden.to'
+import { GuardarCuentaDomiciliacionDto } from './dto/requests/guardar-cuenta-domiciliacion.dto'
+import { GuardarDatosIdentificacionDto } from './dto/requests/guardar-datos-identificacion.dto'
+import { GuardarDomicilioDto } from './dto/requests/guardar-domicilio.dto'
+import { GuardarInfoContactosDto } from './dto/requests/guardar-info-contactos.dto'
+import { GuardarInfoFinancieraDto } from './dto/requests/guardar-info-financiera.dto'
+import { GuardarInfoLaboralDto } from './dto/requests/guardar-info-laboral.dto'
+import { GuardarInfoPersonalDto } from './dto/requests/guardar-info-personal.dto'
+import { GuardarInfoReferenciasDto } from './dto/requests/guardar-info-referencias.dto'
+import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
+import { IniciarSolicitudDto } from './dto/requests/iniciar-solicitud.dto'
+import { RegistrarContactoDto } from './dto/requests/registrar-contacto.dto'
+import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
 
 @Injectable()
 export class SolicitudService {
@@ -29,7 +29,11 @@ export class SolicitudService {
 
   constructor(private manager: EntityManager) {}
 
-  async iniciarSolicitud({ solicitudv3 }: IniciarSolicitudDto) {
+  async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
+    if (user) {
+      solicitudv3.idpersonafisica = user?.personaFisica?.id
+    }
+
     const response = await this.manager.query(`
       DECLARE @resultcode INT;
       EXEC v3.sp_a123IniciarProcesoCaptura
@@ -47,6 +51,7 @@ export class SolicitudService {
     if (!response.length || !response[0].resultcode) {
       return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
+
     if (response[0].resultcode <= 0) {
       switch (response[0].resultcode) {
         case -1:
@@ -66,13 +71,48 @@ export class SolicitudService {
       `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = 18012`,
     )
 
+    if (user && identidad) {
+      console.log(identidad, solicitudcredito.idSolicitud)
+      const clientes = await this.manager.query(`
+        EXEC web.flash_getConveniosByIdsolicitud
+          @idsolicitud = ${solicitudcredito.idSolicitud}, 
+          @identidad = ${identidad};
+        `)
+
+      if (clientes.length > 0) {
+        const params = createQueryParams(
+          {
+            ...clientes[0],
+            fechacontratacion: '2024-10-10',
+          },
+          true,
+        )
+
+        const response = await this.manager.query(`
+          DECLARE @resultcode INT;
+          EXEC v3.sp_a123GuardarInfoLaboral
+            @idsolicitud = ${solicitudcredito.idSolicitud},
+            @idpersonal = 18017,
+            ${params};
+          SELECT @resultcode AS resultcode;
+          `)
+
+        return new CustomResponse(new Message(), {
+          solicitudcredito,
+          convenioRegistrado: true,
+        })
+      }
+    }
+
     return new CustomResponse(new Message(), { solicitudcredito })
   }
 
-  async guardarInfoPersonal({
-    datos01infopersonal,
-    solicitudv3,
-  }: GuardarInfoPersonalDto) {
+  async guardarInfoPersonal(
+    { datos01infopersonal, solicitudv3 }: GuardarInfoPersonalDto,
+    user?: User,
+  ) {
+    // TODO: validar que el idpersonafisica de la solicitud sea igual al que viene en el JWT
+
     const queryParams = createQueryParams(datos01infopersonal, true)
 
     const response = await this.manager.query(`

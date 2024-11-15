@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 
@@ -8,14 +8,14 @@ import { CustomResponse, Message } from 'src/utils/customResponse'
 import { SolicitudService } from 'src/solicitud/solicitud.service'
 import { RegistrarContraseniaDto } from './dto/registrar-contrasenia.dto'
 import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
+import { User } from 'src/auth/entities/user.entity'
 
 @Injectable()
 export class SolicitudesFlashService {
   constructor(private manager: EntityManager) {}
 
-  async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto) {
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString()
-    dto.codigo = codigo
+  async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
+    dto.codigo = Math.floor(100000 + Math.random() * 900000).toString()
     const queryParams = createQueryParams(dto, true)
 
     const response = await this.manager.query(`
@@ -25,13 +25,8 @@ export class SolicitudesFlashService {
       SELECT @resultcode AS resultcode;
       `)
 
-    const msg = `'Tu código de verificación Intermercado es: ${codigo}'`
-
-    await this.manager.query(`
-      SELECT dbo.fn_Sms(
-        ${dto.celular},
-        ${msg}
-      );`)
+    const msg = `'Tu código de verificación Intermercado es: ${dto.codigo}'`
+    await this.manager.query(`SELECT dbo.fn_Sms(${dto.celular}, ${msg});`)
 
     if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
       return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
@@ -86,5 +81,20 @@ export class SolicitudesFlashService {
     }
 
     return new CustomResponse(new Message('Tu número celular ha sido validado'))
+  }
+
+  async buscarRfc(rfc: string) {
+    if (!rfc || rfc.trim() == '') {
+      return new BadRequestException('EL RFC es requerido')
+    }
+
+    const response = await this.manager.query(`
+      EXEC web.sp_buscarRFC
+        @rfc = ${rfc.toUpperCase()};
+      `)
+
+    return new CustomResponse(new Message(), {
+      idPersonaFisica: response[0]?.idPersonaFisica || null,
+    })
   }
 }

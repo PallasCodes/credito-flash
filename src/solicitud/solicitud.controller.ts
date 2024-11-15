@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Post, UseGuards } from '@nestjs/common'
 
 import { SolicitudService } from './solicitud.service'
 import { IniciarSolicitudDto } from './dto/requests/iniciar-solicitud.dto'
@@ -17,14 +17,21 @@ import { BaseRequestDto } from './dto/requests/base-request.dto'
 import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
 import { ActualizarTrainProcessDto } from './dto/requests/actualizar-train-process.dto'
 import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-orden.to'
+import { OptionalJwtAuthGuard } from 'src/auth/guards/optionalJwt.guard'
+import { GetUser } from 'src/auth/decorators'
+import { User } from 'src/auth/entities/user.entity'
 
+@UseGuards(OptionalJwtAuthGuard)
 @Controller('solicitud')
 export class SolicitudController {
   constructor(private readonly solicitudService: SolicitudService) {}
 
   @Post('iniciar-solicitud')
-  iniciarSolicitud(@Body() iniciarSolicitudDto: IniciarSolicitudDto) {
-    return this.solicitudService.iniciarSolicitud(iniciarSolicitudDto)
+  iniciarSolicitud(
+    @Body() iniciarSolicitudDto: IniciarSolicitudDto,
+    @GetUser() user: User,
+  ) {
+    return this.solicitudService.iniciarSolicitud(iniciarSolicitudDto, user)
   }
 
   @Post('guardar-info-personal')
