@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config'
 import { Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
 
@@ -24,12 +25,14 @@ import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dt
 
 @Injectable()
 export class SolicitudService {
+  ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
   static readonly BASE_ERROR_MESSAGE =
     'No se puedo guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
-  constructor(private manager: EntityManager) {}
+  constructor(private manager: EntityManager, private configService: ConfigService) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
+    console.log(this.ID_PERSONAL)
     if (user) {
       solicitudv3.idpersonafisica = user?.personaFisica?.id
     }
@@ -42,7 +45,7 @@ export class SolicitudService {
         @idtipoorden = ${solicitudv3.idtipoorden},
         @idpersonafisica = ${solicitudv3.idpersonafisica}, 
         @idvendedor = 18012,
-        @idpersonalcaptura = 18012,
+        @idpersonalcaptura = ${this.ID_PERSONAL},
         @nuevocliente = ${null}, 
         @resultcode = @resultcode OUTPUT;
       SELECT @resultcode AS resultcode;
@@ -68,7 +71,7 @@ export class SolicitudService {
     }
 
     const [solicitudcredito] = await this.manager.query(
-      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = 18012`,
+      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${response[0].resultcode}, @idpersonal = ${this.ID_PERSONAL}`,
     )
 
     if (user && identidad) {
@@ -88,11 +91,11 @@ export class SolicitudService {
           true,
         )
 
-        const response = await this.manager.query(`
+        await this.manager.query(`
           DECLARE @resultcode INT;
           EXEC v3.sp_a123GuardarInfoLaboral
             @idsolicitud = ${solicitudcredito.idSolicitud},
-            @idpersonal = 18017,
+            @idpersonal = ${this.ID_PERSONAL},
             ${params};
           SELECT @resultcode AS resultcode;
           `)
@@ -119,7 +122,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarInfoPersonal
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -153,7 +156,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarDatosIdentificacion
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -191,7 +194,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarInfoLaboral
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -246,7 +249,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarCentroTrabajo
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -275,7 +278,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarDomicilio
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -306,7 +309,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123RegistrarPersonaFisicaContacto
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -375,7 +378,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarInfoContactos
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -403,7 +406,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarPersonaFisicaReferencia
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -445,7 +448,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarInfoReferencias
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         @referencia1 = ${datos07inforeferencias.idreferencia1},
         @referencia2 = ${datos07inforeferencias.idreferencia2},
         @resultcode = @resultcode OUTPUT;
@@ -478,7 +481,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarCuentaDomiciliacion
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -511,7 +514,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarInfoFinanciera
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -584,7 +587,7 @@ export class SolicitudService {
       const [solicitudcredito] = await this.manager.query(`
         EXEC v3.sp_a123getSolicitudV3ById
           @idsolicitud = ${solicitudv3.idsolicitud},
-          @idpersonal = 18017;
+          @idpersonal = ${this.ID_PERSONAL};
         `)
 
       const [datos] = await this.manager.query(`
@@ -627,7 +630,7 @@ export class SolicitudService {
     datos11condiciones,
   }: GuardarCondicionesOrdenDto) {
     const [solicitudcredito] = await this.manager.query(
-      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = 18012`,
+      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = ${this.ID_PERSONAL}`,
     )
 
     const { importesolicitado, idpromocion, deudaexterna, ...condiciones } =
@@ -645,7 +648,7 @@ export class SolicitudService {
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarCondiciones
         @idsolicitud = ${solicitudv3.idsolicitud},
-        @idpersonal = 18017,
+        @idpersonal = ${this.ID_PERSONAL},
         ${queryParams};
       SELECT @resultcode AS resultcode;
       `)
@@ -672,7 +675,7 @@ export class SolicitudService {
         DECLARE @resultcode INT;
         EXEC v3.sp_a123RegistrarOrden
           @idsolicitud = ${solicitudv3.idsolicitud},
-          @idpersonal = 18017,
+          @idpersonal = ${this.ID_PERSONAL},
           @resultcode = @resultcode OUTPUT;
         SELECT @resultcode AS resultcode;
       `)
@@ -691,7 +694,7 @@ export class SolicitudService {
     }
 
     const [solicitud] = await this.manager.query(
-      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = 18012`,
+      `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = ${this.ID_PERSONAL}`,
     )
 
     return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })

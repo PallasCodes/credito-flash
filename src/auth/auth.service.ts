@@ -78,10 +78,13 @@ export class AuthService {
       return new BadRequestException('No existe un cliente con este RFC')
     }
 
-    const registeredUser = await this.userRepository.findOneBy({ rfc })
-    if (registeredUser) {
+    const registeredUser = await this.userRepository.findOne({
+      where: { rfc },
+      select: { rfc: true, contrasena: true, id: true },
+    })
+    if (!registeredUser) {
       return new BadRequestException(
-        'El usuario ya se encuentra registrado en la plataforma de Crédito Flash',
+        'El usuario ya se encuentra registrado en el portal Crédito Web',
       )
     }
 
@@ -107,20 +110,13 @@ export class AuthService {
     }
 
     const msg = `Tu contrasena para el portal Crédito Web de Itermercado es: ${contrasena}`
-    const res = await this.manager.query('SELECT dbo.fn_Sms(@0,@1) AS res', [
+    await this.manager.query('SELECT dbo.fn_Sms(@0,@1) AS res', [
       resultCelular[0].celular,
       msg,
     ])
-    console.log(
-      '🚀 ~ AuthService ~ registerUserByRfc ~ resultCelular[0].celular:',
-      resultCelular[0].celular,
-    )
-    console.log('🚀 ~ AuthService ~ registerUserByRfc ~ res:', res)
 
-    const token = this.getJwtToken({ id: user.id })
     return new CustomResponse(
       new Message('Se ha enviado un SMS con tu contraseña a tu celular'),
-      { ...user, token },
     )
   }
 
