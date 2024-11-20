@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsPhoneNumber, Length } from 'class-validator'
+import { IsString, IsOptional, Length } from 'class-validator'
 
 export class CreateUserDto {
   @IsString()
@@ -9,14 +9,9 @@ export class CreateUserDto {
   @Length(8, 16)
   contrasena: string
 
-  @IsOptional()
-  @IsPhoneNumber(null)
+  @IsString()
   @Length(10, 12)
-  celular?: string
-
-  @IsOptional()
-  @IsInt()
-  idPersonaFisica: number
+  celular: string
 }
 
 export class CreateUserByRfcDto {

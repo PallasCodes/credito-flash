@@ -27,12 +27,11 @@ import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dt
 export class SolicitudService {
   ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
   static readonly BASE_ERROR_MESSAGE =
-    'No se puedo guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
+    'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
   constructor(private manager: EntityManager, private configService: ConfigService) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
-    console.log(this.ID_PERSONAL)
     if (user) {
       solicitudv3.idpersonafisica = user?.personaFisica?.id
     }
@@ -581,8 +580,6 @@ export class SolicitudService {
           @resultcode = @resultcode OUTPUT;
         SELECT @resultcode AS resultcode;
         `)
-
-      // TODO: make idpersonal env var
 
       const [solicitudcredito] = await this.manager.query(`
         EXEC v3.sp_a123getSolicitudV3ById
