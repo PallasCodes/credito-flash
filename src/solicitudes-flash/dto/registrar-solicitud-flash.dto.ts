@@ -3,7 +3,7 @@ import { IsInt, IsOptional, IsPositive, IsString, Length } from 'class-validator
 export class RegistrarSolicitudFlashDto {
   @IsOptional()
   @IsInt()
-  idUsarioCreditoFlash: number | null
+  idUsuarioCreditoFlash?: number
 
   @IsInt()
   @IsPositive()

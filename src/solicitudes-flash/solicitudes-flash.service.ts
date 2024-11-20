@@ -16,7 +16,9 @@ export class SolicitudesFlashService {
 
   async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
     if (user) {
-      dto.idUsarioCreditoFlash = user.id
+      dto.idUsuarioCreditoFlash = user.id
+    } else {
+      delete dto.idUsuarioCreditoFlash
     }
 
     const queryParams = createQueryParams(dto, true)
