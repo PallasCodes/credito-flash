@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module'
 import { SolicitudModule } from './solicitud/solicitud.module'
 import { CatalogosModule } from './catalogos/catalogos.module'
 import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module'
+import { S3Module } from './s3/s3.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.mo
     SolicitudModule,
     CatalogosModule,
     SolicitudesFlashModule,
+    S3Module,
   ],
 })
 export class AppModule {}
