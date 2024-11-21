@@ -16,6 +16,7 @@ import { JwtPayload } from './interfaces/jwt-payload.interface'
 import { CustomResponse, Message } from 'src/utils/customResponse'
 import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
 import { CreateUserByRfcDto } from './dto/create-user.dto'
+import { createQueryParams } from 'src/utils/createQueryParams'
 
 @Injectable()
 export class AuthService {
@@ -28,26 +29,42 @@ export class AuthService {
   ) {}
 
   async register(createUserDto: CreateUserDto) {
-    try {
-      const { contrasena, rfc } = createUserDto
+    const { contrasena, rfc, celular } = createUserDto
 
-      const personaFisica = await this.personaFisicaRepository.findOneBy({ rfc })
+    const personaFisica = await this.personaFisicaRepository.findOneBy({ rfc })
 
-      if (!personaFisica) {
-        return new BadRequestException('No existe un cliente con este RFC')
-      }
-
-      const user = this.userRepository.create({
-        rfc,
-        contrasena: bcrypt.hashSync(contrasena, 10),
-        personaFisica,
-      })
-      await this.userRepository.save(user)
-
-      return { ...user, token: this.getJwtToken({ id: user.id }) }
-    } catch (error) {
-      this.handleDBErrors(error)
+    if (!personaFisica) {
+      return new BadRequestException('No existe un cliente con este RFC')
     }
+
+    const user = this.userRepository.create({
+      rfc,
+      contrasena: bcrypt.hashSync(contrasena, 10),
+      personaFisica,
+    })
+    await this.userRepository.save(user)
+    delete user.contrasena
+
+    const token = this.getJwtToken({ id: user.id })
+    const codigo = Math.floor(100000 + Math.random() * 900000).toString()
+
+    const queryParams = createQueryParams({ rfc, codigo }, true)
+
+    const result = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC web.sp_flash_registrarCodigoValidacion
+        ${queryParams};
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (!result || !result.length || result[0].resultcode !== 1) {
+      return new CustomResponse(new Message('Error', true))
+    }
+
+    const msg = `'Tu código de verificación Intermercado es: ${codigo}'`
+    await this.manager.query(`SELECT dbo.fn_Sms(${celular}, ${msg});`)
+
+    return new CustomResponse(new Message(), { ...user, token })
   }
 
   generatePassword(): string {
@@ -78,10 +95,13 @@ export class AuthService {
       return new BadRequestException('No existe un cliente con este RFC')
     }
 
-    const registeredUser = await this.userRepository.findOneBy({ rfc })
+    const registeredUser = await this.userRepository.findOne({
+      where: { rfc },
+      select: { rfc: true, contrasena: true, id: true },
+    })
     if (registeredUser) {
       return new BadRequestException(
-        'El usuario ya se encuentra registrado en la plataforma de Crédito Flash',
+        'El usuario ya se encuentra registrado en el portal Crédito Web',
       )
     }
 
@@ -107,20 +127,13 @@ export class AuthService {
     }
 
     const msg = `Tu contrasena para el portal Crédito Web de Itermercado es: ${contrasena}`
-    const res = await this.manager.query('SELECT dbo.fn_Sms(@0,@1) AS res', [
+    await this.manager.query('SELECT dbo.fn_Sms(@0,@1) AS res', [
       resultCelular[0].celular,
       msg,
     ])
-    console.log(
-      '🚀 ~ AuthService ~ registerUserByRfc ~ resultCelular[0].celular:',
-      resultCelular[0].celular,
-    )
-    console.log('🚀 ~ AuthService ~ registerUserByRfc ~ res:', res)
 
-    const token = this.getJwtToken({ id: user.id })
     return new CustomResponse(
       new Message('Se ha enviado un SMS con tu contraseña a tu celular'),
-      { ...user, token },
     )
   }
 
@@ -150,12 +163,5 @@ export class AuthService {
   private getJwtToken(payload: JwtPayload) {
     const token = this.jwtService.sign(payload)
     return token
-  }
-
-  private handleDBErrors(error: any): never {
-    if (error.code === '23505') throw new BadRequestException(error.detail)
-
-    console.log(error)
-    throw new InternalServerErrorException('Check server logs')
   }
 }

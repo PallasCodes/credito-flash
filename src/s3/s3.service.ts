@@ -1,0 +1,63 @@
+import { Injectable, BadRequestException } from '@nestjs/common'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { v4 as uuidv4 } from 'uuid'
+import { CustomResponse, Message } from 'src/utils/customResponse'
+import { InjectRepository } from '@nestjs/typeorm'
+import { Archivo } from './entities/archivo.entity'
+import { Repository } from 'typeorm'
+import { User } from 'src/auth/entities/user.entity'
+
+@Injectable()
+export class S3Service {
+  private readonly s3Client: S3Client
+  private readonly bucketName: string
+
+  constructor(
+    @InjectRepository(Archivo) private readonly archivoRepository: Repository<Archivo>,
+  ) {
+    this.s3Client = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    })
+    this.bucketName = process.env.AWS_BUCKET_NAME
+  }
+
+  async uploadFiles(files: any[], usuario: User) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No se proporcionaron archivos.')
+    }
+
+    const uploadPromises = files.map(async (file) => {
+      const key = `${uuidv4()}-${file.originalname}`
+      const params = {
+        Bucket: this.bucketName,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }
+
+      try {
+        await this.s3Client.send(new PutObjectCommand(params))
+
+        const archivo = this.archivoRepository.create({
+          key,
+          tipoArchivo: file.fieldname,
+          usuario,
+        })
+        await this.archivoRepository.save(archivo)
+
+        return archivo
+      } catch (error) {
+        console.error('Error al subir el archivo a S3:', error)
+        throw new BadRequestException('Error al subir los archivos.')
+      }
+    })
+
+    const uploads = await Promise.all(uploadPromises)
+
+    return new CustomResponse(new Message(), { uploads })
+  }
+}

@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
+
 import { AuthModule } from './auth/auth.module'
 import { SolicitudModule } from './solicitud/solicitud.module'
 import { CatalogosModule } from './catalogos/catalogos.module'
 import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module'
+import { S3Module } from './s3/s3.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -18,12 +21,13 @@ import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.mo
       autoLoadEntities: true,
       synchronize: false,
       options: { encrypt: false, trustServerCertificate: true },
-      extra: { requestTimeout: 50000 }, // 50 segundos}
+      extra: { requestTimeout: 60000 }, // 60 segundos}
     }),
     AuthModule,
     SolicitudModule,
     CatalogosModule,
     SolicitudesFlashModule,
+    S3Module,
   ],
 })
 export class AppModule {}
