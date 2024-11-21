@@ -1,5 +1,13 @@
+import { Archivo } from 'src/s3/entities/archivo.entity'
 import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm'
 
 @Entity({ name: 'usuarioCreditoFlash', schema: 'web' })
 export class User {
@@ -32,4 +40,7 @@ export class User {
     name: 'fechaCreacion',
   })
   fechaCreacion: Date
+
+  @OneToMany(() => Archivo, (archivo) => archivo.usuario, { onDelete: 'CASCADE' })
+  archivos: Archivo[]
 }

@@ -9,12 +9,15 @@ import {
 } from '@nestjs/common'
 
 import { S3Service } from './s3.service'
+import { Auth, GetUser } from 'src/auth/decorators'
+import { User } from 'src/auth/entities/user.entity'
 
 @Controller('s3')
 export class S3Controller {
   constructor(private readonly s3Service: S3Service) {}
 
   @Post('upload')
+  @Auth()
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'ine', maxCount: 1 },
@@ -27,6 +30,7 @@ export class S3Controller {
       ine?: any[]
       comprobante?: any[]
     },
+    @GetUser() user: User,
   ) {
     if (!files.ine || !files.ine.length) {
       throw new BadRequestException('El archivo INE es requerido.')
@@ -36,6 +40,6 @@ export class S3Controller {
       throw new BadRequestException('El archivo Comprobante es requerido.')
     }
 
-    return this.s3Service.uploadFiles([files.ine, files.comprobante])
+    return this.s3Service.uploadFiles([files.ine[0], files.comprobante[0]], user)
   }
 }
