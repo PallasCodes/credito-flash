@@ -6,11 +6,13 @@ import {
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
+  UsePipes,
 } from '@nestjs/common'
 
 import { S3Service } from './s3.service'
 import { Auth, GetUser } from 'src/auth/decorators'
 import { User } from 'src/auth/entities/user.entity'
+import { FileValidationPipe } from './validateField.pipe'
 
 @Controller('s3')
 export class S3Controller {
@@ -24,6 +26,7 @@ export class S3Controller {
       { name: 'comprobante', maxCount: 1 },
     ]),
   )
+  @UsePipes(FileValidationPipe)
   async uploadFile(
     @UploadedFiles()
     files: {
