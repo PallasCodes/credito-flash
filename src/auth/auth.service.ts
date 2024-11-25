@@ -92,7 +92,7 @@ export class AuthService {
   async registerUserByRfc({ rfc }: CreateUserByRfcDto) {
     const personaFisica = await this.personaFisicaRepository.findOneBy({ rfc })
     if (!personaFisica) {
-      return new BadRequestException('No existe un cliente con este RFC')
+      throw new BadRequestException('No existe un cliente con este RFC')
     }
 
     const registeredUser = await this.userRepository.findOne({
@@ -100,7 +100,7 @@ export class AuthService {
       select: { rfc: true, contrasena: true, id: true },
     })
     if (registeredUser) {
-      return new BadRequestException(
+      throw new BadRequestException(
         'El usuario ya se encuentra registrado en el portal Crédito Web',
       )
     }
@@ -121,7 +121,7 @@ export class AuthService {
       SELECT @celular AS celular;
       `)
     if (!resultCelular || !resultCelular.length) {
-      return new BadRequestException(
+      throw new BadRequestException(
         'No se encontró ningún celular vinculado a una cuenta con este RFC',
       )
     }
