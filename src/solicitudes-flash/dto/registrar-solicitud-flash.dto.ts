@@ -11,4 +11,7 @@ export class RegistrarSolicitudFlashDto {
 
   @IsInt()
   idPromocion: number
+
+  @IsInt()
+  idSolicitudV3: number
 }
