@@ -5,7 +5,7 @@ import { ValidarCodigoCelularDto } from './dto/validar-codigo-celular'
 import { RegistrarContraseniaDto } from './dto/registrar-contrasenia.dto'
 import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optionalJwt.guard'
-import { GetUser } from 'src/auth/decorators'
+import { Auth, GetUser } from 'src/auth/decorators'
 import { User } from 'src/auth/entities/user.entity'
 
 @Controller('solicitud-flash')
@@ -37,5 +37,11 @@ export class SolicitudesFlashController {
   @Get('buscar-rfc/:rfc')
   buscarRfc(@Param('rfc') rfc: string) {
     return this.solicitudesFlashService.buscarRfc(rfc)
+  }
+
+  @Auth()
+  @Get('get-solicitud-activa')
+  getActiveRequest(@GetUser() user: User) {
+    return this.solicitudesFlashService.getActiveRequest(user)
   }
 }

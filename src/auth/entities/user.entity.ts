@@ -1,5 +1,6 @@
 import { Archivo } from 'src/s3/entities/archivo.entity'
 import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
+import { SolicitudFlash } from 'src/solicitudes-flash/entities/solicitudFlash.entity'
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -43,4 +44,8 @@ export class User {
 
   @OneToMany(() => Archivo, (archivo) => archivo.usuario, { onDelete: 'CASCADE' })
   archivos: Archivo[]
+
+  @OneToMany(() => SolicitudFlash, (solicitud) => solicitud.user, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'idSolicitudCreditoFlash' })
+  solicitudes: SolicitudFlash[]
 }

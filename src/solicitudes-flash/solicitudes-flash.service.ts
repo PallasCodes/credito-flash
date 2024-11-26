@@ -1,5 +1,6 @@
+import { InjectRepository } from '@nestjs/typeorm'
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { EntityManager } from 'typeorm'
+import { EntityManager, LessThan, Repository } from 'typeorm'
 import * as bcrypt from 'bcrypt'
 
 import { ValidarCodigoCelularDto } from './dto/validar-codigo-celular'
@@ -9,12 +10,26 @@ import { SolicitudService } from 'src/solicitud/solicitud.service'
 import { RegistrarContraseniaDto } from './dto/registrar-contrasenia.dto'
 import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
 import { User } from 'src/auth/entities/user.entity'
+import { SolicitudFlash } from './entities/solicitudFlash.entity'
 
 @Injectable()
 export class SolicitudesFlashService {
-  constructor(private manager: EntityManager) {}
+  constructor(
+    private manager: EntityManager,
+    @InjectRepository(SolicitudFlash)
+    private readonly solicitudFlashRepository: Repository<SolicitudFlash>,
+  ) {}
+
+  async getActiveRequest(user: User): Promise<any> {
+    const activeRequest = await this.solicitudFlashRepository.findOne({
+      where: { user: { id: user.id }, trainProcess: LessThan(11) },
+    })
+
+    return new CustomResponse(new Message(), { activeRequest })
+  }
 
   async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
+    // TODO: agregar validación para no permitir crear solicitudes en x tiempo
     if (user) {
       dto.idUsuarioCreditoFlash = user.id
     }
