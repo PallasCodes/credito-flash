@@ -21,17 +21,18 @@ export class SolicitudesFlashService {
   ) {}
 
   async getActiveRequest(user: User): Promise<any> {
-    const activeRequest = await this.solicitudFlashRepository.findOne({
+    const solicitudActiva = await this.solicitudFlashRepository.findOne({
       where: { user: { id: user.id }, trainProcess: LessThan(11) },
     })
 
-    return new CustomResponse(new Message(), { activeRequest })
+    return new CustomResponse(new Message(), { solicitudActiva })
   }
 
   async registrarSolicitudFlash(dto: RegistrarSolicitudFlashDto, user?: User) {
     // TODO: agregar validación para no permitir crear solicitudes en x tiempo
     if (user) {
       dto.idUsuarioCreditoFlash = user.id
+      dto.trainProcess = 4
     }
 
     const queryParams = createQueryParams(dto, true)

@@ -14,4 +14,8 @@ export class RegistrarSolicitudFlashDto {
 
   @IsInt()
   idSolicitudV3: number
+
+  @IsOptional()
+  @IsInt()
+  trainProcess?: number | null = 1
 }
