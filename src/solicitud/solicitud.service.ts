@@ -183,6 +183,8 @@ export class SolicitudService {
         break
     }
 
+    await this.actualizarTrainProcessFlash(4, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message(mensaje, error))
   }
 
@@ -235,6 +237,8 @@ export class SolicitudService {
         break
     }
 
+    await this.actualizarTrainProcessFlash(5, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message(mensaje, error))
   }
 
@@ -267,6 +271,8 @@ export class SolicitudService {
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
     let error = response[0].resultcode <= 0
 
+    await this.actualizarTrainProcessFlash(5, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message(mensaje, error))
   }
 
@@ -297,6 +303,8 @@ export class SolicitudService {
     let mensaje =
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
     let error = response[0].resultcode <= 0
+
+    await this.actualizarTrainProcessFlash(6, solicitudv3.idsolicitud)
 
     return new CustomResponse(new Message(mensaje, error))
   }
@@ -467,6 +475,8 @@ export class SolicitudService {
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
     let error = response[0].resultcode <= 0
 
+    await this.actualizarTrainProcessFlash(7, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message(mensaje, error))
   }
 
@@ -500,6 +510,8 @@ export class SolicitudService {
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
     let error = response[0].resultcode <= 0
 
+    await this.actualizarTrainProcessFlash(8, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message(mensaje, error))
   }
 
@@ -530,6 +542,8 @@ export class SolicitudService {
     let mensaje =
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
     let error = response[0].resultcode <= 0
+
+    await this.actualizarTrainProcessFlash(9, solicitudv3.idsolicitud)
 
     return new CustomResponse(new Message(mensaje, error))
   }
@@ -694,7 +708,20 @@ export class SolicitudService {
       `EXEC v3.sp_a123getSolicitudV3ById @idsolicitud = ${solicitudv3.idsolicitud}, @idpersonal = ${this.ID_PERSONAL}`,
     )
 
+    await this.actualizarTrainProcessFlash(11, solicitudv3.idsolicitud)
+
     return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })
   }
   // TODO: implementar validaciones existentes en el 3.0
+
+  async actualizarTrainProcessFlash(
+    trainProcess: number,
+    idSolicitudV3: number,
+  ): Promise<void> {
+    await this.manager.query(
+      `EXEC web.sp_actualizarTrainProcessFlash 
+        @trainProcess = ${trainProcess},  
+        @idSolicitudv3 = ${idSolicitudV3};`,
+    )
+  }
 }

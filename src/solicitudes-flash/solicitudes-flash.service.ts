@@ -97,4 +97,15 @@ export class SolicitudesFlashService {
       idPersonaFisica: response[0]?.idPersonaFisica || null,
     })
   }
+
+  async actualizarTrainProcess(
+    trainProcess: number,
+    idSolicitudV3: number,
+  ): Promise<void> {
+    await this.manager.query(
+      `EXEC web.sp_actualizarTrainProcessFlash 
+        @trainProcess = ${trainProcess},  
+        @idSolicitudV3 = ${idSolicitudV3};`,
+    )
+  }
 }
