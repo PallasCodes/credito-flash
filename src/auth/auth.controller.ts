@@ -5,6 +5,7 @@ import { AuthService } from './auth.service'
 import { CreateUserDto, LoginUserDto } from './dto'
 import { User } from './entities/user.entity'
 import { CreateUserByRfcDto } from './dto/create-user.dto'
+import { RfcDto } from './dto/rfc.dto'
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -30,5 +31,10 @@ export class AuthController {
   @Post('signup-by-rfc')
   registerByRfc(@Body() createUserByRfc: CreateUserByRfcDto) {
     return this.authService.registerUserByRfc(createUserByRfc)
+  }
+
+  @Post('check-rfc')
+  checkRfc(@Body() dto: RfcDto) {
+    return this.authService.checkIfUserIsRegistered(dto)
   }
 }

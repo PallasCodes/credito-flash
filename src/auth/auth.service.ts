@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { JwtService } from '@nestjs/jwt'
 
@@ -17,6 +12,7 @@ import { CustomResponse, Message } from 'src/utils/customResponse'
 import { PersonaFisica } from 'src/solicitud/entities/PersonaFisica.entity'
 import { CreateUserByRfcDto } from './dto/create-user.dto'
 import { createQueryParams } from 'src/utils/createQueryParams'
+import { RfcDto } from './dto/rfc.dto'
 
 @Injectable()
 export class AuthService {
@@ -158,6 +154,13 @@ export class AuthService {
       ...user,
       token: this.getJwtToken({ id: user.id }),
     })
+  }
+
+  async checkIfUserIsRegistered({ rfc }: RfcDto) {
+    const userFlash = await this.userRepository.exist({ where: { rfc } })
+    const user = await this.personaFisicaRepository.exist({ where: { rfc } })
+
+    return new CustomResponse(new Message(), { userFlash, user })
   }
 
   private getJwtToken(payload: JwtPayload) {
