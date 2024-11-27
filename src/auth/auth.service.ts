@@ -141,14 +141,14 @@ export class AuthService {
       select: { rfc: true, contrasena: true, id: true },
     })
 
-    const validPassword = bcrypt.compareSync(contrasena, user.contrasena)
-
-    if (!user || !validPassword) {
+    if (!user) {
       throw new UnauthorizedException('Credenciales no válidas')
     }
 
-    // TODO: refac custom message so that sending a new instance of message isnt required
-    // TODO: return idPersonaFisica, use transaction
+    const validPassword = bcrypt.compareSync(contrasena, user.contrasena)
+    if (!validPassword) {
+      throw new UnauthorizedException('Credenciales no válidas')
+    }
 
     return new CustomResponse(new Message('Sesión iniciada'), {
       ...user,

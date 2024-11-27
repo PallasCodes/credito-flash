@@ -1,4 +1,4 @@
-enum TipoMensajeRespuesta {
+export enum TipoMensajeRespuesta {
   NONE = 'NONE',
   DIALOG = 'DIALOG',
   TOAST = 'TOAST',
