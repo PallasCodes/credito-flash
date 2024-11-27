@@ -58,6 +58,7 @@ export class S3Service {
 
     const uploads = await Promise.all(uploadPromises)
 
+    // TODO: update trainProcess
     return new CustomResponse(new Message(), { uploads })
   }
 }

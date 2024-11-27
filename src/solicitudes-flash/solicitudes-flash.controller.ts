@@ -7,6 +7,7 @@ import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optionalJwt.guard'
 import { Auth, GetUser } from 'src/auth/decorators'
 import { User } from 'src/auth/entities/user.entity'
+import { CheckConvenioActivoDto } from './dto/check-convenio-activo.dto'
 
 @Controller('solicitud-flash')
 export class SolicitudesFlashController {
@@ -43,5 +44,10 @@ export class SolicitudesFlashController {
   @Get('get-solicitud-activa')
   getActiveRequest(@GetUser() user: User) {
     return this.solicitudesFlashService.getActiveRequest(user)
+  }
+
+  @Post('check-convenio-activo')
+  checkConvenioActivo(@Body() dto: CheckConvenioActivoDto) {
+    return this.solicitudesFlashService.checkConvenioActivo(dto)
   }
 }

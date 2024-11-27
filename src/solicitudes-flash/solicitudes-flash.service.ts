@@ -11,6 +11,7 @@ import { RegistrarContraseniaDto } from './dto/registrar-contrasenia.dto'
 import { RegistrarSolicitudFlashDto } from './dto/registrar-solicitud-flash.dto'
 import { User } from 'src/auth/entities/user.entity'
 import { SolicitudFlash } from './entities/solicitudFlash.entity'
+import { CheckConvenioActivoDto } from './dto/check-convenio-activo.dto'
 
 @Injectable()
 export class SolicitudesFlashService {
@@ -92,7 +93,6 @@ export class SolicitudesFlashService {
       `)
 
     if (!response.length || !response[0].resultcode || response[0].resultcode !== 1) {
-      // TODO: eliminar código depués de validarlo
       return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
     }
 
@@ -112,6 +112,20 @@ export class SolicitudesFlashService {
     return new CustomResponse(new Message(), {
       idPersonaFisica: response[0]?.idPersonaFisica || null,
     })
+  }
+
+  async checkConvenioActivo({ idEntidad, idSolicitud }: CheckConvenioActivoDto) {
+    const clientes = await this.manager.query(`
+        EXEC web.flash_getConveniosByIdsolicitud
+          @idsolicitud = ${idSolicitud}, 
+          @identidad = ${idEntidad};
+        `)
+
+    if (!clientes) {
+      throw new BadRequestException('Ocurrió un error, inténtalo más tarde')
+    }
+
+    return new CustomResponse(new Message(), { convenioActivo: clientes[0] })
   }
 
   async actualizarTrainProcess(

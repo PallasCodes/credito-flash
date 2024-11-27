@@ -74,7 +74,6 @@ export class SolicitudService {
     )
 
     if (user && identidad) {
-      console.log(identidad, solicitudcredito.idSolicitud)
       const clientes = await this.manager.query(`
         EXEC web.flash_getConveniosByIdsolicitud
           @idsolicitud = ${solicitudcredito.idSolicitud}, 
