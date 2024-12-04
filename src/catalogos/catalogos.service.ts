@@ -19,7 +19,7 @@ export class CatalogosService {
     return new CustomResponse(new Message(), { elementos })
   }
 
-  async getElementosVariosPorCodigo(codigo: number) {
+  async getElementosVariosPorCodigo(codigo: number, idFiltro: number = null) {
     if (!codigo) {
       return new CustomResponse(new Message('El código del catálogo es requerido', true))
     }
@@ -27,7 +27,7 @@ export class CatalogosService {
     const elementos = await this.manager.query(`
       EXEC v3.sp_getElementosCatalogoVarios
         @mode = ${codigo},
-        @idfiltro = ${null};
+        @idfiltro = ${idFiltro};
       `)
 
     return new CustomResponse(new Message(), { elementos })

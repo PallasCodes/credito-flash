@@ -11,8 +11,11 @@ export class CatalogosController {
   }
 
   @Get('get-elementos-varios-por-codigo')
-  getElementosVariosPorCodigo(@Query('codigo') codigo: number) {
-    return this.catalogosService.getElementosVariosPorCodigo(codigo)
+  getElementosVariosPorCodigo(
+    @Query('codigo') codigo: number,
+    @Query('idFiltro') idFiltro: number,
+  ) {
+    return this.catalogosService.getElementosVariosPorCodigo(codigo, idFiltro)
   }
 
   @Get('get-colonias-por-codigo-postal')
