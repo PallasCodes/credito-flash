@@ -479,10 +479,22 @@ export class SolicitudService {
     return new CustomResponse(new Message(mensaje, error))
   }
 
-  async guardarCuentaDomiciliacion({
-    solicitudv3,
-    datos08cuenta01,
-  }: GuardarCuentaDomiciliacionDto) {
+  async guardarCuentaDomiciliacion(
+    { solicitudv3, datos08cuenta01 }: GuardarCuentaDomiciliacionDto,
+    user: User,
+  ) {
+    const response2 = await this.manager.query(`
+      EXEC web.validaCuentaBancariaToku
+        @rfc = ${user.rfc},
+        @clabe = ${datos08cuenta01.clabe}
+      `)
+
+    if (!response2.length || !response2[0].Message || response2[0].Message !== 'OK') {
+      return new CustomResponse(
+        new Message('La cuenta bancaria no pertenece al RFC introducido', true),
+      )
+    }
+
     const queryParams = createQueryParams(datos08cuenta01, true)
 
     const response = await this.manager.query(`

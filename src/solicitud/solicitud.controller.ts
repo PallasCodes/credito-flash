@@ -18,7 +18,7 @@ import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dt
 import { ActualizarTrainProcessDto } from './dto/requests/actualizar-train-process.dto'
 import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-orden.to'
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optionalJwt.guard'
-import { GetUser } from 'src/auth/decorators'
+import { Auth, GetUser } from 'src/auth/decorators'
 import { User } from 'src/auth/entities/user.entity'
 
 @UseGuards(OptionalJwtAuthGuard)
@@ -81,13 +81,19 @@ export class SolicitudController {
     return this.solicitudService.guardarInfoReferencias(guardarInfoReferenciasDto)
   }
 
+  @Auth()
   @Post('guardar-cuenta-domiciliacion')
   guardarCuentaDomiciliacion(
     @Body() guardarCuentaDomiciliacionDto: GuardarCuentaDomiciliacionDto,
+    @GetUser() user: User,
   ) {
-    return this.solicitudService.guardarCuentaDomiciliacion(guardarCuentaDomiciliacionDto)
+    return this.solicitudService.guardarCuentaDomiciliacion(
+      guardarCuentaDomiciliacionDto,
+      user,
+    )
   }
 
+  @Auth()
   @Post('guardar-info-financiera')
   guardarInfoFinanciera(@Body() guardarInfofinancieraDto: GuardarInfoFinancieraDto) {
     return this.solicitudService.guardarInfoFinanciera(guardarInfofinancieraDto)
