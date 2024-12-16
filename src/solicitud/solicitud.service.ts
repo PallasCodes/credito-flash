@@ -26,6 +26,7 @@ import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dt
 @Injectable()
 export class SolicitudService {
   ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
+  ID_VENDEDOR = this.configService.get<number>('ID_VENDEDOR')
   static readonly BASE_ERROR_MESSAGE =
     'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
@@ -43,7 +44,7 @@ export class SolicitudService {
         @idproductoscc = ${solicitudv3.idproductoscc}, 
         @idtipoorden = ${solicitudv3.idtipoorden},
         @idpersonafisica = ${solicitudv3.idpersonafisica}, 
-        @idvendedor = 18012,
+        @idvendedor = ${this.ID_VENDEDOR},
         @idpersonalcaptura = ${this.ID_PERSONAL},
         @nuevocliente = ${null}, 
         @resultcode = @resultcode OUTPUT;
