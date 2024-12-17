@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config'
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { EntityManager } from 'typeorm'
+import axios from 'axios'
 
 import { User } from 'src/auth/entities/user.entity'
 import { Contacto } from 'src/types/contacto.interface'
@@ -485,15 +486,40 @@ export class SolicitudService {
     { solicitudv3, datos08cuenta01 }: GuardarCuentaDomiciliacionDto,
     user: User,
   ) {
-    const response2 = await this.manager.query(`
-      EXEC web.validaCuentaBancariaToku
-        @rfc = ${user.rfc},
-        @clabe = ${datos08cuenta01.clabe}
-      `)
+    try {
+      const headers = {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-api-key': 'GKW_lG9X3Imbhu_FnecgFCPOB5gdAju-22mnejWct5c',
+      }
+      const body = {
+        account_number: datos08cuenta01.clabe,
+        customer_identifier: user.rfc,
+      }
 
-    if (!response2.length || !response2[0].Message || response2[0].Message !== 'OK') {
-      return new CustomResponse(
-        new Message('La cuenta bancaria no pertenece al RFC introducido', true),
+      const response = await axios.post(
+        'https://api.trytoku.com/bank-account-verification',
+        body,
+        { headers },
+      )
+
+      if (!response.data) {
+        throw new BadRequestException(
+          'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+        )
+      }
+      if (response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      if (response.data.error || response.data.message !== 'OK') {
+        throw new BadRequestException('La cuenta CLABE o el RFC no son válidos')
+      }
+    } catch (error) {
+      if (error.response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      throw new BadRequestException(
+        'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
       )
     }
 
