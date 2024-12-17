@@ -85,6 +85,7 @@ export class SolicitudService {
         const params = createQueryParams(
           {
             ...clientes[0],
+            // TODO: quitar hardcodeo
             fechacontratacion: '2024-10-10',
           },
           true,
@@ -706,14 +707,6 @@ export class SolicitudService {
       if (resultadoRegistrarOrden.resultcode !== 1) {
         return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
       }
-
-      // const solicitud = ''
-      // getSolicitudById
-      // mig_pasarOrden_3_AL_2_ByIdorden
-    } else {
-      // solicitud = getSolicitudById
-      // mig_actualizarCambiosOrden_3_AL_2_ByIdorden
-      // TODO: checar si es necesario migrar
     }
 
     const [solicitud] = await this.manager.query(
@@ -721,6 +714,11 @@ export class SolicitudService {
     )
 
     await this.actualizarTrainProcessFlash(11, solicitudv3.idsolicitud)
+    await this.manager.query(`
+        EXEC tmpmigracion.sp_9000_mig_actualizarCambiosOrden_3_AL_2_ByIdorden
+          @idorden = ${solicitud.idOrden},
+          @idpersonal = ${this.ID_PERSONAL};
+      `)
 
     return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })
   }
