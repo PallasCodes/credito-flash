@@ -1,11 +1,12 @@
+import { extname } from 'path'
 import { Injectable, BadRequestException } from '@nestjs/common'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { v4 as uuidv4 } from 'uuid'
 import { CustomResponse, Message } from 'src/utils/customResponse'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Archivo } from './entities/archivo.entity'
 import { Repository } from 'typeorm'
 import { User } from 'src/auth/entities/user.entity'
+import { tiposArchivos } from 'src/types/tipoArchivo.enum'
 
 @Injectable()
 export class S3Service {
@@ -25,13 +26,16 @@ export class S3Service {
     this.bucketName = process.env.AWS_BUCKET_NAME
   }
 
-  async uploadFiles(files: any[], usuario: User) {
+  async uploadFiles(files: any[], usuario: User, idOrden: number) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No se proporcionaron archivos.')
     }
 
     const uploadPromises = files.map(async (file) => {
-      const key = `${uuidv4()}-${file.originalname}`
+      const codeName = `${idOrden}.${tiposArchivos[file.fieldname]}`
+      const extension = extname(file.originalname)
+      const fileName = `${codeName}.${new Date().getTime()}${extension}`
+      const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
       const params = {
         Bucket: this.bucketName,
         Key: key,

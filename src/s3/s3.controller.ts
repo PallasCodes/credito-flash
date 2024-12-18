@@ -1,6 +1,7 @@
 import { FileFieldsInterceptor } from '@nestjs/platform-express'
 import {
   BadRequestException,
+  Body,
   Controller,
   Post,
   UploadedFile,
@@ -22,27 +23,32 @@ export class S3Controller {
   @Auth()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'ine', maxCount: 1 },
-      { name: 'comprobante', maxCount: 1 },
+      { name: 'identificacion', maxCount: 1 },
+      { name: 'comprobanteDom', maxCount: 1 },
     ]),
   )
   @UsePipes(FileValidationPipe)
   async uploadFile(
     @UploadedFiles()
     files: {
-      ine?: any[]
-      comprobante?: any[]
+      identificacion?: any[]
+      comprobanteDom?: any[]
     },
     @GetUser() user: User,
+    @Body('idOrden') idOrden: string,
   ) {
-    if (!files.ine || !files.ine.length) {
+    if (!files.identificacion || !files.identificacion.length) {
       throw new BadRequestException('El archivo INE es requerido.')
     }
 
-    if (!files.comprobante || !files.comprobante.length) {
+    if (!files.comprobanteDom || !files.comprobanteDom.length) {
       throw new BadRequestException('El archivo Comprobante es requerido.')
     }
 
-    return this.s3Service.uploadFiles([files.ine[0], files.comprobante[0]], user)
+    return this.s3Service.uploadFiles(
+      [files.identificacion[0], files.comprobanteDom[0]],
+      user,
+      +idOrden,
+    )
   }
 }

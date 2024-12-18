@@ -12,7 +12,7 @@ export class FileValidationPipe implements PipeTransform {
   private readonly maxSize = 5 * 1024 * 1024 // 5 MB
 
   transform(value: any) {
-    if (value instanceof User) return value
+    if (value instanceof User || typeof value === 'string') return value
 
     for (const fieldName in value) {
       const file = value[fieldName][0]
