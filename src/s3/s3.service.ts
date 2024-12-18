@@ -1,20 +1,28 @@
 import { extname } from 'path'
+
 import { Injectable, BadRequestException } from '@nestjs/common'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import { CustomResponse, Message } from 'src/utils/customResponse'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Archivo } from './entities/archivo.entity'
+import { ConfigService } from '@nestjs/config'
 import { Repository } from 'typeorm'
+
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+
+import { CustomResponse, Message } from 'src/utils/customResponse'
 import { User } from 'src/auth/entities/user.entity'
 import { tiposArchivos } from 'src/types/tipoArchivo.enum'
+import { OrdenDocumento } from './entities/ordenDocumento.entity'
 
 @Injectable()
 export class S3Service {
   private readonly s3Client: S3Client
   private readonly bucketName: string
+  ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
 
   constructor(
-    @InjectRepository(Archivo) private readonly archivoRepository: Repository<Archivo>,
+    @InjectRepository(OrdenDocumento)
+    private readonly ordenDocRepository: Repository<OrdenDocumento>,
+
+    private configService: ConfigService,
   ) {
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION,
@@ -41,17 +49,27 @@ export class S3Service {
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
+        ACL: 'public-read',
       }
 
       try {
+        // @ts-ignore
         await this.s3Client.send(new PutObjectCommand(params))
 
-        const archivo = this.archivoRepository.create({
-          key,
-          tipoArchivo: file.fieldname,
-          usuario,
-        })
-        await this.archivoRepository.save(archivo)
+        const url = `https://s3.amazonaws.com/${this.bucketName}/${key}`
+        const archivoContent = {
+          id: Number(tiposArchivos[file.fieldname]),
+          idOrden: idOrden,
+          idPersonal: this.ID_PERSONAL,
+          nombreArchivo: fileName,
+          tamanoArchivo: file.size,
+          web: 1,
+          s3: 1,
+          s3Key: key,
+          publicUrl: url,
+        }
+        const archivo = this.ordenDocRepository.create(archivoContent)
+        await this.ordenDocRepository.save(archivo)
 
         return archivo
       } catch (error) {
