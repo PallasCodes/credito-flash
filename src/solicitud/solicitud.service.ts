@@ -28,6 +28,8 @@ import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dt
 export class SolicitudService {
   ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
   ID_VENDEDOR = this.configService.get<number>('ID_VENDEDOR')
+  ID_PRODUCTO = this.configService.get<number>('ID_PRODUCTO')
+
   static readonly BASE_ERROR_MESSAGE =
     'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
@@ -693,6 +695,41 @@ export class SolicitudService {
       },
       true,
     )
+
+    const responseProducto = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123EditarProducto
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @idproducto = ${this.ID_PRODUCTO},
+        @cantidad = 1,
+        @precio = ${datos11condiciones.importesolicitado},
+        @resultcode = @resultcode OUTPUT;
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (
+      !responseProducto.length ||
+      !responseProducto[0].resultcode ||
+      responseProducto[0].resultcode !== 1
+    ) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
+    const responseCalc = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123CalcularImportesSolicitud
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @resultcode = @resultcode OUTPUT;
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (
+      !responseCalc.length ||
+      !responseCalc[0].resultcode ||
+      responseCalc[0].resultcode !== 1
+    ) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
 
     const response = await this.manager.query(`
       DECLARE @resultcode INT;
