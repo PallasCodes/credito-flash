@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config'
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { EntityManager } from 'typeorm'
+import { EntityManager, Repository } from 'typeorm'
 import axios from 'axios'
 
 import { User } from 'src/auth/entities/user.entity'
@@ -23,17 +23,25 @@ import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
 import { IniciarSolicitudDto } from './dto/requests/iniciar-solicitud.dto'
 import { RegistrarContactoDto } from './dto/requests/registrar-contacto.dto'
 import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { VerificacionToku } from './entities/verificacionToku.entity'
 
 @Injectable()
 export class SolicitudService {
   ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
   ID_VENDEDOR = this.configService.get<number>('ID_VENDEDOR')
   ID_PRODUCTO = this.configService.get<number>('ID_PRODUCTO')
+  TOKU_KEY = this.configService.get<string>('TOKU_KEY')
 
   static readonly BASE_ERROR_MESSAGE =
     'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
-  constructor(private manager: EntityManager, private configService: ConfigService) {}
+  constructor(
+    private manager: EntityManager,
+    private configService: ConfigService,
+    @InjectRepository(VerificacionToku)
+    private readonly verificacionTokuRepository: Repository<VerificacionToku>,
+  ) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
     if (user) {
@@ -492,7 +500,7 @@ export class SolicitudService {
       const headers = {
         accept: 'application/json',
         'content-type': 'application/json',
-        'x-api-key': 'GKW_lG9X3Imbhu_FnecgFCPOB5gdAju-22mnejWct5c',
+        'x-api-key': this.TOKU_KEY,
       }
       const body = {
         account_number: datos08cuenta01.clabe,
@@ -513,9 +521,22 @@ export class SolicitudService {
       if (response.data.error === 'Invalid CLABE') {
         throw new BadRequestException('La cuenta CLABE no es válida')
       }
-      if (response.data.error || response.data.message !== 'OK') {
+      if (
+        response.data.error ||
+        response.data.message !== 'OK' ||
+        !response.data.id_bank_account_verification
+      ) {
         throw new BadRequestException('La cuenta CLABE o el RFC no son válidos')
       }
+
+      const verificacionToku = this.verificacionTokuRepository.create({
+        clabeIntroducida: datos08cuenta01.clabe,
+        rfcIntroducido: user.rfc,
+        idEvento: response.data.id_bank_account_verification,
+        status: 'PROCESSING',
+        idSolicitud: solicitudv3.idsolicitud,
+      })
+      await this.verificacionTokuRepository.save(verificacionToku)
     } catch (error) {
       if (error.response.data.error === 'Invalid CLABE') {
         throw new BadRequestException('La cuenta CLABE no es válida')

@@ -6,6 +6,7 @@ import { SolicitudService } from './solicitud.service'
 import { SolicitudController } from './solicitud.controller'
 import { AuthModule } from 'src/auth/auth.module'
 import { PersonaFisica } from './entities/PersonaFisica.entity'
+import { VerificacionToku } from './entities/verificacionToku.entity'
 
 @Module({
   controllers: [SolicitudController],
@@ -13,7 +14,7 @@ import { PersonaFisica } from './entities/PersonaFisica.entity'
   imports: [
     ConfigModule.forRoot(),
     AuthModule,
-    TypeOrmModule.forFeature([PersonaFisica]),
+    TypeOrmModule.forFeature([PersonaFisica, VerificacionToku]),
   ],
 })
 export class SolicitudModule {}

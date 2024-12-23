@@ -34,8 +34,8 @@ export class S3Controller {
       identificacion?: any[]
       comprobanteDom?: any[]
     },
-    @GetUser() user: User,
     @Body('idOrden') idOrden: string,
+    @Body('idSolicitud') idSolicitud: number,
   ) {
     if (!files.identificacion || !files.identificacion.length) {
       throw new BadRequestException('El archivo INE es requerido.')
@@ -47,7 +47,7 @@ export class S3Controller {
 
     return this.s3Service.uploadFiles(
       [files.identificacion[0], files.comprobanteDom[0]],
-      user,
+      idSolicitud,
       +idOrden,
     )
   }

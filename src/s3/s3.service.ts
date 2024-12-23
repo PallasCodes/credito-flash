@@ -11,16 +11,22 @@ import { CustomResponse, Message } from 'src/utils/customResponse'
 import { User } from 'src/auth/entities/user.entity'
 import { tiposArchivos } from 'src/types/tipoArchivo.enum'
 import { OrdenDocumento } from './entities/ordenDocumento.entity'
+import { VerificacionToku } from 'src/solicitud/entities/verificacionToku.entity'
 
 @Injectable()
 export class S3Service {
+  ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
+  COMPROBANTE_PAGO = this.configService.get<number>('COMPROBANTE_PAGO')
+
   private readonly s3Client: S3Client
   private readonly bucketName: string
-  ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
 
   constructor(
     @InjectRepository(OrdenDocumento)
     private readonly ordenDocRepository: Repository<OrdenDocumento>,
+
+    @InjectRepository(VerificacionToku)
+    private readonly verifTokuRepository: Repository<VerificacionToku>,
 
     private configService: ConfigService,
   ) {
@@ -34,7 +40,7 @@ export class S3Service {
     this.bucketName = process.env.AWS_BUCKET_NAME
   }
 
-  async uploadFiles(files: any[], usuario: User, idOrden: number) {
+  async uploadFiles(files: any[], idSolicitud: number, idOrden: number) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No se proporcionaron archivos.')
     }
@@ -57,7 +63,7 @@ export class S3Service {
         await this.s3Client.send(new PutObjectCommand(params))
 
         const url = `https://s3.amazonaws.com/${this.bucketName}/${key}`
-        const archivoContent = {
+        const docContent = {
           id: Number(tiposArchivos[file.fieldname]),
           idOrden: idOrden,
           idPersonal: this.ID_PERSONAL,
@@ -68,17 +74,38 @@ export class S3Service {
           s3Key: key,
           publicUrl: url,
         }
-        const archivo = this.ordenDocRepository.create(archivoContent)
-        await this.ordenDocRepository.save(archivo)
+        const document = this.ordenDocRepository.create(docContent)
+        await this.ordenDocRepository.save(document)
 
-        return archivo
+        return document
       } catch (error) {
         console.error('Error al subir el archivo a S3:', error)
         throw new BadRequestException('Error al subir los archivos.')
       }
     })
 
+    const { pdfUrl } = await this.verifTokuRepository.findOneBy({ idSolicitud })
+
     const uploads = await Promise.all(uploadPromises)
+
+    const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
+    const fileName = `${codeName}.${new Date().getTime()}.pdf`
+    const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
+
+    const docContent = {
+      id: this.COMPROBANTE_PAGO,
+      idOrden: idOrden,
+      idPersonal: this.ID_PERSONAL,
+      nombreArchivo: fileName,
+      tamanoArchivo: 0,
+      web: 1,
+      s3: 1,
+      s3Key: key,
+      publicUrl: pdfUrl,
+    }
+
+    const document = this.ordenDocRepository.create(docContent)
+    await this.ordenDocRepository.save(document)
 
     // TODO: update trainProcess
     return new CustomResponse(new Message(), { uploads })
