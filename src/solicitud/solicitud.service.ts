@@ -341,14 +341,14 @@ export class SolicitudService {
       '1': 'Contacto registrado correctamente',
       '-1': 'La solicitud no es válida o ya no se encuentra disponible para edición',
       '-2': 'No se puede registrar el contacto ya que se encuentra en la lista negra de contactos',
-      '-3': 'No registrado, el contacto ya se encuentra registrado para el mismo cliente',
+      '-3': '',
     }
 
     const mensaje =
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
-    const error = response[0].resultcode <= 0
+    const error = response[0].resultcode <= 0 && response[0].resultcode !== -3
 
-    if (response[0].resultcode === 1) {
+    if (response[0].resultcode === 1 || response[0].resultcode === -3) {
       const response2: Contacto[] = await this.manager.query(
         `EXEC v3.sp_a123BuscarContactos @idsolicitud = ${solicitudv3.idsolicitud}`,
       )
