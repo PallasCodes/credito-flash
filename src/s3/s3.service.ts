@@ -8,7 +8,6 @@ import { Repository } from 'typeorm'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 import { CustomResponse, Message } from 'src/utils/customResponse'
-import { User } from 'src/auth/entities/user.entity'
 import { tiposArchivos } from 'src/types/tipoArchivo.enum'
 import { OrdenDocumento } from './entities/ordenDocumento.entity'
 import { VerificacionToku } from 'src/solicitud/entities/verificacionToku.entity'

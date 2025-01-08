@@ -12,7 +12,6 @@ import {
 
 import { S3Service } from './s3.service'
 import { Auth, GetUser } from 'src/auth/decorators'
-import { User } from 'src/auth/entities/user.entity'
 import { FileValidationPipe } from './validateField.pipe'
 
 @Controller('s3')
@@ -25,6 +24,7 @@ export class S3Controller {
     FileFieldsInterceptor([
       { name: 'identificacion', maxCount: 1 },
       { name: 'comprobanteDom', maxCount: 1 },
+      { name: 'talonPago', maxCount: 1 },
     ]),
   )
   @UsePipes(FileValidationPipe)
@@ -33,6 +33,7 @@ export class S3Controller {
     files: {
       identificacion?: any[]
       comprobanteDom?: any[]
+      talonPago?: any[]
     },
     @Body('idOrden') idOrden: string,
     @Body('idSolicitud') idSolicitud: number,
@@ -45,8 +46,12 @@ export class S3Controller {
       throw new BadRequestException('El archivo Comprobante es requerido.')
     }
 
+    if (!files.talonPago || !files.talonPago.length) {
+      throw new BadRequestException('El archivo Talón de pago es requerido.')
+    }
+
     return this.s3Service.uploadFiles(
-      [files.identificacion[0], files.comprobanteDom[0]],
+      [files.identificacion[0], files.comprobanteDom[0], files.talonPago[0]],
       idSolicitud,
       +idOrden,
     )
