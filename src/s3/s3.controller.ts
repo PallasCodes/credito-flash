@@ -20,13 +20,13 @@ export class S3Controller {
 
   @Post('upload')
   @Auth()
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'identificacion', maxCount: 1 },
-      { name: 'comprobanteDom', maxCount: 1 },
-      { name: 'talonPago', maxCount: 1 },
-    ]),
-  )
+  // @UseInterceptors(
+  //   FileFieldsInterceptor([
+  //     { name: 'identificacion', maxCount: 1 },
+  //     { name: 'comprobanteDom', maxCount: 1 },
+  //     { name: 'talonPago', maxCount: 1 },
+  //   ]),
+  // )
   // @UsePipes(FileValidationPipe)
   async uploadFile(
     @UploadedFiles()
