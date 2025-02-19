@@ -38,6 +38,8 @@ export class S3Controller {
     @Body('idOrden') idOrden: string,
     @Body('idSolicitud') idSolicitud: number,
   ) {
+    console.log(files)
+
     if (!files.identificacion || !files.identificacion.length) {
       throw new BadRequestException('El archivo INE es requerido.')
     }
