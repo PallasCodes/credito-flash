@@ -27,7 +27,7 @@ export class S3Controller {
       { name: 'talonPago', maxCount: 1 },
     ]),
   )
-  @UsePipes(FileValidationPipe)
+  // @UsePipes(FileValidationPipe)
   async uploadFile(
     @UploadedFiles()
     files: {
