@@ -25,7 +25,7 @@ export class FileValidationPipe implements PipeTransform {
 
       if (file.size > this.maxSize) {
         throw new BadRequestException(
-          `El archivo es demasiado grande: ${file.originalname}. Tamaño máximo permitido de 5MB`,
+          `El archivo es demasiado grande: ${file.originalname}. Tamaño máximo permitido de 10MB`,
         )
       }
     }

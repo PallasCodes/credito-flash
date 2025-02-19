@@ -4,14 +4,13 @@ import {
   Body,
   Controller,
   Post,
-  UploadedFile,
   UploadedFiles,
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common'
 
 import { S3Service } from './s3.service'
-import { Auth, GetUser } from 'src/auth/decorators'
+import { Auth } from 'src/auth/decorators'
 import { FileValidationPipe } from './validateField.pipe'
 
 @Controller('s3')

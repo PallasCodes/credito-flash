@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 import { AppModule } from './app.module'
 import { CustomExceptionFilter } from './utils/CustomExceptionFilter'
+import { urlencoded } from 'express'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -12,7 +13,12 @@ async function bootstrap() {
   app.setGlobalPrefix('api')
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   app.useGlobalFilters(new CustomExceptionFilter())
-  app.enableCors()
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,POST,PUT,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Authorization',
+  })
+  app.use(urlencoded({ limit: '50mb', extended: true }))
 
   const config = new DocumentBuilder()
     .setTitle('Crédito Flash')
@@ -22,7 +28,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, document)
 
-  await app.listen(process.env.PORT, '0.0.0.0')
+  await app.listen(process.env.PORT)
   logger.log(`App running on port ${process.env.PORT}`)
 }
 bootstrap()
