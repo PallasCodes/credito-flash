@@ -21,7 +21,8 @@ export class S3Controller {
   @Auth()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'identificacion', maxCount: 1 },
+      { name: 'identificacionFrente', maxCount: 1 },
+      { name: 'identificacionReverso', maxCount: 1 },
       { name: 'comprobanteDom', maxCount: 1 },
       { name: 'talonPago', maxCount: 1 },
     ]),
@@ -30,14 +31,19 @@ export class S3Controller {
   async uploadFile(
     @UploadedFiles()
     files: {
-      identificacion?: any[]
+      identificacionFrente?: any[]
+      identificacionReverso?: any[]
       comprobanteDom?: any[]
       talonPago?: any[]
     },
     @Body('idOrden') idOrden: string,
     @Body('idSolicitud') idSolicitud: number,
   ) {
-    if (!files.identificacion || !files.identificacion.length) {
+    if (!files.identificacionFrente || !files.identificacionFrente.length) {
+      throw new BadRequestException('El archivo INE es requerido.')
+    }
+
+    if (!files.identificacionReverso || !files.identificacionReverso.length) {
       throw new BadRequestException('El archivo INE es requerido.')
     }
 
@@ -50,7 +56,12 @@ export class S3Controller {
     }
 
     return this.s3Service.uploadFiles(
-      [files.identificacion[0], files.comprobanteDom[0], files.talonPago[0]],
+      [
+        files.identificacionFrente[0],
+        files.identificacionReverso[0],
+        files.comprobanteDom[0],
+        files.talonPago[0],
+      ],
       idSolicitud,
       +idOrden,
     )

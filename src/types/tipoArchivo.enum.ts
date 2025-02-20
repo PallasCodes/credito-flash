@@ -1,5 +1,6 @@
 export const tiposArchivos = {
-  identificacion: process.env.IDENTIFICACION,
+  identificacionFrente: process.env.IDENTIFICACION,
+  identificacionReverso: process.env.IDENTIFICACION,
   comprobanteDom: process.env.COMPROBANTE_DOM,
   talonPago: process.env.TALON_PAGO,
 }
