@@ -9,7 +9,7 @@ export class FileValidationPipe implements PipeTransform {
     'application/pdf',
     'image/jpg',
   ]
-  private readonly maxSize = 10 * 1024 * 1024 // 5 MB
+  private readonly maxSize = 10 * 1024 * 1024 // 10 MB
 
   transform(value: any) {
     if (value instanceof User || typeof value === 'string') return value
