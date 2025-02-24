@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { ConfigService } from '@nestjs/config'
 import { Repository } from 'typeorm'
 
+import { PDFDocument } from 'pdf-lib'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 import { CustomResponse, Message } from 'src/utils/customResponse'
@@ -108,5 +109,50 @@ export class S3Service {
 
     // TODO: update trainProcess
     return new CustomResponse(new Message(), { uploads })
+  }
+
+  async mergePdfs(buffer1, buffer2) {
+    const mergedPdf = await PDFDocument.create()
+    const pdf1 = await PDFDocument.load(buffer1)
+    const pdf2 = await PDFDocument.load(buffer2)
+
+    const pages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices())
+    pages1.forEach((page) => mergedPdf.addPage(page))
+
+    const pages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices())
+    pages2.forEach((page) => mergedPdf.addPage(page))
+
+    return await mergedPdf.save()
+  }
+
+  async convertImageBufferToPDF(file) {
+    const { buffer, originalname } = file
+
+    const pdfDoc = await PDFDocument.create()
+
+    let image
+    if (originalname.toLowerCase().endsWith('.png')) {
+      image = await pdfDoc.embedPng(buffer)
+    } else if (
+      originalname.toLowerCase().endsWith('.jpg') ||
+      originalname.toLowerCase().endsWith('.jpeg')
+    ) {
+      image = await pdfDoc.embedJpg(buffer)
+    } else {
+      throw new Error('Formato de imagen no soportado. Utiliza PNG o JPG/JPEG.')
+    }
+
+    const { width, height } = image.scale(1)
+
+    const page = pdfDoc.addPage([width, height])
+
+    page.drawImage(image, {
+      x: 0,
+      y: 0,
+      width,
+      height,
+    })
+
+    return await pdfDoc.save()
   }
 }
