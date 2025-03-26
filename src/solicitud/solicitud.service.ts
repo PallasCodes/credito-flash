@@ -25,6 +25,9 @@ import { RegistrarContactoDto } from './dto/requests/registrar-contacto.dto'
 import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
 import { InjectRepository } from '@nestjs/typeorm'
 import { VerificacionToku } from './entities/verificacionToku.entity'
+import { ValidarClabeTokuDto } from './dto/validar-clabe-toku.dto'
+import { OrdenDocumento } from 'src/s3/entities/ordenDocumento.entity'
+import { GuardarDocTokuDto } from './dto/guardar-doc-toku.dto'
 
 @Injectable()
 export class SolicitudService {
@@ -32,6 +35,7 @@ export class SolicitudService {
   ID_VENDEDOR = this.configService.get<number>('ID_VENDEDOR')
   ID_PRODUCTO = this.configService.get<number>('ID_PRODUCTO')
   TOKU_KEY = this.configService.get<string>('TOKU_KEY')
+  COMPROBANTE_PAGO = this.configService.get<number>('COMPROBANTE_PAGO')
 
   static readonly BASE_ERROR_MESSAGE =
     'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
@@ -41,6 +45,8 @@ export class SolicitudService {
     private configService: ConfigService,
     @InjectRepository(VerificacionToku)
     private readonly verificacionTokuRepository: Repository<VerificacionToku>,
+    @InjectRepository(OrdenDocumento)
+    private readonly ordenDocRepository: Repository<OrdenDocumento>,
   ) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
@@ -490,6 +496,110 @@ export class SolicitudService {
     await this.actualizarTrainProcessFlash(7, solicitudv3.idsolicitud)
 
     return new CustomResponse(new Message(mensaje, error))
+  }
+
+  async validarClabeToku(dto: ValidarClabeTokuDto) {
+    try {
+      const headers = {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-api-key': this.TOKU_KEY,
+      }
+      const body = {
+        account_number: dto.clabe,
+        customer_identifier: dto.rfc,
+      }
+
+      const response = await axios.post(
+        'https://api.trytoku.com/bank-account-verification',
+        body,
+        { headers },
+      )
+
+      if (!response.data) {
+        throw new BadRequestException(
+          'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+        )
+      }
+      if (response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      if (
+        response.data.error ||
+        response.data.message !== 'OK' ||
+        !response.data.id_bank_account_verification
+      ) {
+        throw new BadRequestException('La cuenta CLABE o el RFC no son válidos')
+      }
+
+      const verificacionToku = this.verificacionTokuRepository.create({
+        clabeIntroducida: dto.clabe,
+        rfcIntroducido: dto.rfc,
+        idEvento: response.data.id_bank_account_verification,
+        status: 'PROCESSING',
+        idSolicitud: dto.idsolicitud,
+        fromV3: 1,
+      })
+      await this.verificacionTokuRepository.save(verificacionToku)
+
+      return {
+        mensaje: {
+          mensaje: 'OK',
+          error: false,
+          mostrar: 'NONE',
+        },
+      }
+    } catch (error) {
+      if (error.response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      throw new BadRequestException(
+        'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+      )
+    }
+  }
+
+  async crearDocComprobantePago({ idOrden, idSolicitud }: GuardarDocTokuDto) {
+    const { pdfUrl } = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
+
+    const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
+    const fileName = `${codeName}.${new Date().getTime()}.pdf`
+    const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
+
+    const docContent = {
+      id: this.COMPROBANTE_PAGO,
+      idOrden: idOrden,
+      idPersonal: this.ID_PERSONAL,
+      nombreArchivo: fileName,
+      tamanoArchivo: 0,
+      web: 1,
+      s3: 1,
+      s3Key: key,
+      publicUrl: pdfUrl,
+    }
+
+    try {
+      const document = this.ordenDocRepository.create(docContent)
+      await this.ordenDocRepository.save(document)
+    } catch (error) {
+      return {
+        mensaje: {
+          mensaje: 'OK',
+          mostrar: 'NONE',
+          error: false,
+          detallemensaje: null,
+        },
+      }
+    }
+
+    return {
+      mensaje: {
+        mensaje: 'OK',
+        mostrar: 'NONE',
+        error: false,
+        detallemensaje: null,
+      },
+    }
   }
 
   async guardarCuentaDomiciliacion(

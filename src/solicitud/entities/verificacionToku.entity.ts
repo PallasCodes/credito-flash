@@ -43,4 +43,7 @@ export class VerificacionToku {
 
   @Column({ type: 'int', nullable: true })
   idSolicitud: number
+
+  @Column({ type: 'bit', nullable: false, default: 0 })
+  fromV3: number
 }
