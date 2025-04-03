@@ -575,11 +575,13 @@ export class SolicitudService {
       idOrden,
     })
 
-    document = document
-      ? { ...document, ...docContent }
-      : this.ordenDocRepository.create(docContent)
-
-    await this.ordenDocRepository.save(document)
+    if (document) {
+      document.publicUrl = pdfUrl
+      await this.ordenDocRepository.save(document)
+    } else {
+      const newDoc = this.ordenDocRepository.create(docContent)
+      await this.ordenDocRepository.save(newDoc)
+    }
 
     return {
       mensaje: {
