@@ -541,14 +541,6 @@ export class SolicitudService {
         fromV3: 1,
       })
       await this.verificacionTokuRepository.save(verificacionToku)
-
-      return {
-        mensaje: {
-          mensaje: 'OK',
-          error: false,
-          mostrar: 'NONE',
-        },
-      }
     } catch (error) {
       if (error.response.data.error === 'Invalid CLABE') {
         throw new BadRequestException('La cuenta CLABE no es válida')
@@ -569,7 +561,7 @@ export class SolicitudService {
     const docContent = {
       id: this.COMPROBANTE_PAGO,
       idOrden: idOrden,
-      idPersonal: this.ID_PERSONAL,
+      idPersonal: 0,
       nombreArchivo: fileName,
       tamanoArchivo: 0,
       web: 1,
@@ -578,19 +570,16 @@ export class SolicitudService {
       publicUrl: pdfUrl,
     }
 
-    try {
-      const document = this.ordenDocRepository.create(docContent)
-      await this.ordenDocRepository.save(document)
-    } catch (error) {
-      return {
-        mensaje: {
-          mensaje: 'OK',
-          mostrar: 'NONE',
-          error: false,
-          detallemensaje: null,
-        },
-      }
-    }
+    let document = await this.ordenDocRepository.findOneBy({
+      id: this.COMPROBANTE_PAGO,
+      idOrden,
+    })
+
+    document = document
+      ? { ...document, ...docContent }
+      : this.ordenDocRepository.create(docContent)
+
+    await this.ordenDocRepository.save(document)
 
     return {
       mensaje: {
