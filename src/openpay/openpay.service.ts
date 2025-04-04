@@ -11,6 +11,12 @@ export class OpenpayService {
   ) {}
 
   handleWebhook(body: any) {
+    console.log(body)
+
+    if (body.type === 'verification') {
+      return { status: 'ok' }
+    }
+
     const payload = {
       tipoEvento: body.type,
       importe: body.transaction?.amount,
