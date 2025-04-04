@@ -7,6 +7,7 @@ import { SolicitudModule } from './solicitud/solicitud.module'
 import { CatalogosModule } from './catalogos/catalogos.module'
 import { SolicitudesFlashModule } from './solicitudes-flash/solicitudes-flash.module'
 import { S3Module } from './s3/s3.module';
+import { OpenpayModule } from './openpay/openpay.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { S3Module } from './s3/s3.module';
     CatalogosModule,
     SolicitudesFlashModule,
     S3Module,
+    OpenpayModule,
   ],
 })
 export class AppModule {}
