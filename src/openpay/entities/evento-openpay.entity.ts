@@ -13,4 +13,7 @@ export class EventoOpenpay {
 
   @Column({ type: 'datetime' })
   tiempoEvento: Date
+
+  @Column({ type: 'decimal' })
+  importe: number
 }
