@@ -11,17 +11,20 @@ export class OpenpayService {
   ) {}
 
   async handleWebhook(body: any) {
-    console.log(body)
-
     if (body.type === 'verification') {
       return { status: 'ok' }
+    }
+    if (body.type !== 'charge.succeeded') {
+      throw new BadRequestException('Tipo de evento no soportado')
     }
 
     const eventoOpenpay = await this.eventoOpenpayRepository.findOneBy({
       idTransaccion: body.transaction.id,
     })
 
-    if (!eventoOpenpay) throw new NotFoundException()
+    if (!eventoOpenpay) {
+      throw new NotFoundException()
+    }
 
     eventoOpenpay.tipoEvento = body.type
     eventoOpenpay.importe = body.transaction.amount
