@@ -16,4 +16,7 @@ export class EventoOpenpay {
 
   @Column({ type: 'decimal' })
   importe: number
+
+  @Column({ type: 'int' })
+  idOrden: number
 }

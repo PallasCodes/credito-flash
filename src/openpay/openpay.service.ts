@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EventoOpenpay } from './entities/evento-openpay.entity'
 import { Repository } from 'typeorm'
@@ -10,21 +10,25 @@ export class OpenpayService {
     private readonly eventoOpenpayRepository: Repository<EventoOpenpay>,
   ) {}
 
-  handleWebhook(body: any) {
+  async handleWebhook(body: any) {
     console.log(body)
 
     if (body.type === 'verification') {
       return { status: 'ok' }
     }
 
-    const payload = {
-      tipoEvento: body.type,
-      importe: body.transaction?.amount,
-      idTransaccion: body.transaction?.id,
-      tiempoCreacion: body.event_date?.replace('T', ' '),
-    }
+    const eventoOpenpay = await this.eventoOpenpayRepository.findOneBy({
+      idTransaccion: body.transaction.id,
+    })
 
-    this.eventoOpenpayRepository.create(payload)
-    return this.eventoOpenpayRepository.save(payload)
+    if (!eventoOpenpay) throw new NotFoundException()
+
+    eventoOpenpay.tipoEvento = body.type
+    eventoOpenpay.importe = body.transaction.amount
+    eventoOpenpay.tiempoEvento = body.transaction.creation_date?.replace('T', ' ')
+
+    await this.eventoOpenpayRepository.save(eventoOpenpay)
+
+    return { status: 'ok' }
   }
 }
