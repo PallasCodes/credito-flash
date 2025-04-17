@@ -11,6 +11,8 @@ export class OpenpayService {
   ) {}
 
   async handleWebhook(body: any) {
+    console.log(body)
+
     if (body.type === 'verification') {
       return { status: 'ok' }
     }
