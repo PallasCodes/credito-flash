@@ -38,7 +38,7 @@ export class OpenpayService {
 
     await this.insertMovimiento({
       idorden: eventoOpenpay.idOrden,
-      tiempo: eventoOpenpay.tiempoEvento,
+      tiempo: eventoOpenpay.tiempoEvento.toString().slice(0, -6),
       importe: eventoOpenpay.importe,
     })
 
