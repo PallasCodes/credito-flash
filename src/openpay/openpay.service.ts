@@ -46,11 +46,12 @@ export class OpenpayService {
   }
 
   async insertMovimiento(payload: any) {
+    console.log('🚀 ~ OpenpayService ~ insertMovimiento ~ payload:', payload)
     await this.manager.query(`
       EXEC intermercado.dbo.sp_insertMovimientoOpenpay
-        @idorden = '${payload.idorden}',
+        @idorden = ${payload.idorden},
         @tiempo = '${payload.tiempo}',
-        @importe = '${payload.importe}'
+        @importe = ${payload.importe}
     `)
   }
 }
