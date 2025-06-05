@@ -65,13 +65,16 @@ export class S3Service {
           }
 
           const newDoc = this.ordenDocRepository.create(docContent)
-          accept(await this.ordenDocRepository.save(newDoc))
+          await this.ordenDocRepository.save(newDoc)
+
+          accept(true)
         } catch (err) {
           reject(err)
         }
       })
     })
 
+    await this.docTemporalRepository.remove(docs)
     await Promise.allSettled(promises)
     await this.uploadTokuPDf(idSolicitud, idOrden)
 
