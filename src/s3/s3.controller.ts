@@ -1,4 +1,3 @@
-import { FileFieldsInterceptor } from '@nestjs/platform-express'
 import {
   BadRequestException,
   Body,
@@ -8,9 +7,9 @@ import {
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common'
+import { FileFieldsInterceptor } from '@nestjs/platform-express'
 
 import { S3Service } from './s3.service'
-import { Auth } from 'src/auth/decorators'
 import { FileValidationPipe } from './validateField.pipe'
 
 @Controller('s3')
@@ -35,7 +34,6 @@ export class S3Controller {
       comprobanteDom?: any[]
       talonPago?: any[]
     },
-    @Body('idOrden') idOrden: string,
     @Body('idSolicitud') idSolicitud: number,
   ) {
     if (!files.identificacionFrente || !files.identificacionFrente.length) {
@@ -74,7 +72,6 @@ export class S3Controller {
     return this.s3Service.uploadFiles(
       [ine, files.comprobanteDom[0], files.talonPago[0]],
       idSolicitud,
-      +idOrden,
     )
   }
 }

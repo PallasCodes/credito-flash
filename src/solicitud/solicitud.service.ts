@@ -28,6 +28,7 @@ import { VerificacionToku } from './entities/verificacionToku.entity'
 import { ValidarClabeTokuDto } from './dto/validar-clabe-toku.dto'
 import { OrdenDocumento } from 'src/s3/entities/ordenDocumento.entity'
 import { GuardarDocTokuDto } from './dto/guardar-doc-toku.dto'
+import { S3Service } from 'src/s3/s3.service'
 
 @Injectable()
 export class SolicitudService {
@@ -47,6 +48,7 @@ export class SolicitudService {
     private readonly verificacionTokuRepository: Repository<VerificacionToku>,
     @InjectRepository(OrdenDocumento)
     private readonly ordenDocRepository: Repository<OrdenDocumento>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
@@ -904,6 +906,8 @@ export class SolicitudService {
           @idorden = ${solicitud.idOrden},
           @idpersonal = ${this.ID_PERSONAL};
       `)
+
+    await this.s3Service.migrateTempDocs(solicitudv3.idsolicitud, solicitud.idOrden)
 
     return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })
   }

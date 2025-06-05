@@ -12,6 +12,7 @@ import { CustomResponse, Message } from 'src/utils/customResponse'
 import { tiposArchivos } from 'src/types/tipoArchivo.enum'
 import { OrdenDocumento } from './entities/ordenDocumento.entity'
 import { VerificacionToku } from 'src/solicitud/entities/verificacionToku.entity'
+import { DocumentoTemporal } from './entities/documento-temporal.entity'
 
 @Injectable()
 export class S3Service {
@@ -24,6 +25,9 @@ export class S3Service {
   constructor(
     @InjectRepository(OrdenDocumento)
     private readonly ordenDocRepository: Repository<OrdenDocumento>,
+
+    @InjectRepository(DocumentoTemporal)
+    private readonly docTemporalRepository: Repository<DocumentoTemporal>,
 
     @InjectRepository(VerificacionToku)
     private readonly verifTokuRepository: Repository<VerificacionToku>,
@@ -40,75 +44,110 @@ export class S3Service {
     this.bucketName = process.env.AWS_BUCKET_NAME
   }
 
-  async uploadFiles(files: any[], idSolicitud: number, idOrden: number) {
+  async migrateTempDocs(idSolicitud: number, idOrden: number) {
+    const docs = await this.docTemporalRepository.findBy({ idSolicitud })
+
+    if (!docs) return
+
+    const promises = docs.map((doc) => {
+      return new Promise(async (accept, reject) => {
+        try {
+          const docContent: OrdenDocumento = {
+            id: doc.idDocumento,
+            idOrden,
+            idPersonal: this.ID_PERSONAL,
+            nombreArchivo: doc.nombreArchivo,
+            tamanoArchivo: doc.tamanoArchivo,
+            web: 1,
+            s3: 1,
+            s3Key: doc.s3Key,
+            publicUrl: doc.s3Url,
+          }
+
+          const newDoc = this.ordenDocRepository.create(docContent)
+          accept(await this.ordenDocRepository.save(newDoc))
+        } catch (err) {
+          reject(err)
+        }
+      })
+    })
+
+    await Promise.allSettled(promises)
+    await this.uploadTokuPDf(idSolicitud, idOrden)
+
+    return new CustomResponse(new Message())
+  }
+
+  async uploadFiles(files: any[], idSolicitud: number) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No se proporcionaron archivos.')
     }
 
-    const uploadPromises = files.map(async (file) => {
-      const codeName = `${idOrden}.${tiposArchivos[file.fieldname]}`
-      const extension = extname(file.originalname)
-      const fileName = `${codeName}.${new Date().getTime()}${extension}`
-      const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
-      const params = {
-        Bucket: this.bucketName,
-        Key: key,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'public-read',
-      }
-
-      try {
-        // @ts-ignore
-        await this.s3Client.send(new PutObjectCommand(params))
-
-        const url = `https://s3.amazonaws.com/${this.bucketName}/${key}`
-        const docContent = {
-          id: Number(tiposArchivos[file.fieldname]),
-          idOrden: idOrden,
-          idPersonal: this.ID_PERSONAL,
-          nombreArchivo: fileName,
-          tamanoArchivo: file.size,
-          web: 1,
-          s3: 1,
-          s3Key: key,
-          publicUrl: url,
+    const uploadPromises = files.map((file) => {
+      return new Promise(async (accept, reject) => {
+        const codeName = `${idSolicitud}.${tiposArchivos[file.fieldname]}`
+        const extension = extname(file.originalname)
+        const fileName = `${codeName}.${new Date().getTime()}${extension}`
+        const key = `${new Date().getFullYear()}/${idSolicitud}/${fileName}`
+        const params = {
+          Bucket: this.bucketName,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          ACL: 'public-read',
         }
-        const document = this.ordenDocRepository.create(docContent)
-        await this.ordenDocRepository.save(document)
 
-        return document
-      } catch (error) {
-        console.error('Error al subir el archivo a S3:', error)
-        throw new BadRequestException('Error al subir los archivos.')
-      }
+        try {
+          // @ts-ignore
+          await this.s3Client.send(new PutObjectCommand(params))
+
+          const url = `https://s3.amazonaws.com/${this.bucketName}/${key}`
+
+          const docContent: DocumentoTemporal = {
+            idDocumento: Number(tiposArchivos[file.fieldname]),
+            idSolicitud: idSolicitud,
+            nombreArchivo: fileName,
+            tamanoArchivo: file.size ?? 0,
+            s3Key: key,
+            s3Url: url,
+          }
+          const document = this.docTemporalRepository.create(docContent)
+          await this.docTemporalRepository.save(document)
+
+          accept(document)
+        } catch (error) {
+          console.error('Error al subir el archivo a S3:', error)
+          reject()
+        }
+      })
     })
 
-    const { pdfUrl } = await this.verifTokuRepository.findOneBy({ idSolicitud })
+    const uploads = await Promise.allSettled(uploadPromises)
 
-    const uploads = await Promise.all(uploadPromises)
+    // TODO: update trainProcess
+    return new CustomResponse(new Message(), { uploads })
+  }
+
+  private async uploadTokuPDf(idSolicitud: number, idOrden: number) {
+    const { pdfUrl } = await this.verifTokuRepository.findOneBy({ idSolicitud })
 
     const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
     const fileName = `${codeName}.${new Date().getTime()}.pdf`
     const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
 
-    const docContent = {
-      id: this.COMPROBANTE_PAGO,
-      idOrden: idOrden,
-      idPersonal: this.ID_PERSONAL,
+    const docContent: OrdenDocumento = {
       nombreArchivo: fileName,
       tamanoArchivo: 0,
-      web: 1,
-      s3: 1,
       s3Key: key,
+      id: this.COMPROBANTE_PAGO,
+      idOrden,
+      idPersonal: this.ID_PERSONAL,
       publicUrl: pdfUrl,
+      s3: 1,
     }
 
     const document = this.ordenDocRepository.create(docContent)
     await this.ordenDocRepository.save(document)
-
-    // TODO: update trainProcess
-    return new CustomResponse(new Message(), { uploads })
   }
 
   async mergePdfs(buffer1, buffer2) {
