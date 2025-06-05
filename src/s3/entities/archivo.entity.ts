@@ -12,9 +12,9 @@ export class Archivo {
   @Column('varchar')
   tipoArchivo: string
 
-  @ManyToOne(() => User, (user) => user.archivos)
-  @JoinColumn({
-    name: 'idUsuarioCreditoFlash',
-  })
-  usuario: User
+  // @ManyToOne(() => User, (user) => user.archivos)
+  // @JoinColumn({
+  //   name: 'idUsuarioCreditoFlash',
+  // })
+  // usuario: User
 }

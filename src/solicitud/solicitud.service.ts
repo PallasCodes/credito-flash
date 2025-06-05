@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config'
-import { Injectable } from '@nestjs/common'
-import { EntityManager } from 'typeorm'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { EntityManager, Repository } from 'typeorm'
+import axios from 'axios'
 
 import { User } from 'src/auth/entities/user.entity'
 import { Contacto } from 'src/types/contacto.interface'
@@ -22,14 +23,33 @@ import { GuardarReferenciaDto } from './dto/requests/guardar-referencia.dto'
 import { IniciarSolicitudDto } from './dto/requests/iniciar-solicitud.dto'
 import { RegistrarContactoDto } from './dto/requests/registrar-contacto.dto'
 import { SeleccionarPromocionDto } from './dto/requests/seleccionar-promocion.dto'
+import { InjectRepository } from '@nestjs/typeorm'
+import { VerificacionToku } from './entities/verificacionToku.entity'
+import { ValidarClabeTokuDto } from './dto/validar-clabe-toku.dto'
+import { OrdenDocumento } from 'src/s3/entities/ordenDocumento.entity'
+import { GuardarDocTokuDto } from './dto/guardar-doc-toku.dto'
+import { S3Service } from 'src/s3/s3.service'
 
 @Injectable()
 export class SolicitudService {
   ID_PERSONAL = this.configService.get<number>('ID_PERSONAL')
+  ID_VENDEDOR = this.configService.get<number>('ID_VENDEDOR')
+  ID_PRODUCTO = this.configService.get<number>('ID_PRODUCTO')
+  TOKU_KEY = this.configService.get<string>('TOKU_KEY')
+  COMPROBANTE_PAGO = this.configService.get<number>('COMPROBANTE_PAGO')
+
   static readonly BASE_ERROR_MESSAGE =
     'No se puede guardar la información, inténtelo más tarde o comuniquese con nosotros para apoyarlo'
 
-  constructor(private manager: EntityManager, private configService: ConfigService) {}
+  constructor(
+    private manager: EntityManager,
+    private configService: ConfigService,
+    @InjectRepository(VerificacionToku)
+    private readonly verificacionTokuRepository: Repository<VerificacionToku>,
+    @InjectRepository(OrdenDocumento)
+    private readonly ordenDocRepository: Repository<OrdenDocumento>,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async iniciarSolicitud({ solicitudv3, identidad }: IniciarSolicitudDto, user?: User) {
     if (user) {
@@ -43,7 +63,7 @@ export class SolicitudService {
         @idproductoscc = ${solicitudv3.idproductoscc}, 
         @idtipoorden = ${solicitudv3.idtipoorden},
         @idpersonafisica = ${solicitudv3.idpersonafisica}, 
-        @idvendedor = 18012,
+        @idvendedor = ${this.ID_VENDEDOR},
         @idpersonalcaptura = ${this.ID_PERSONAL},
         @nuevocliente = ${null}, 
         @resultcode = @resultcode OUTPUT;
@@ -84,6 +104,7 @@ export class SolicitudService {
         const params = createQueryParams(
           {
             ...clientes[0],
+            // TODO: quitar hardcodeo
             fechacontratacion: '2024-10-10',
           },
           true,
@@ -328,14 +349,14 @@ export class SolicitudService {
       '1': 'Contacto registrado correctamente',
       '-1': 'La solicitud no es válida o ya no se encuentra disponible para edición',
       '-2': 'No se puede registrar el contacto ya que se encuentra en la lista negra de contactos',
-      '-3': 'No registrado, el contacto ya se encuentra registrado para el mismo cliente',
+      '-3': '',
     }
 
     const mensaje =
       catMessages[`${response[0].resultcode}`] || SolicitudService.BASE_ERROR_MESSAGE
-    const error = response[0].resultcode <= 0
+    const error = response[0].resultcode <= 0 && response[0].resultcode !== -3
 
-    if (response[0].resultcode === 1) {
+    if (response[0].resultcode === 1 || response[0].resultcode === -3) {
       const response2: Contacto[] = await this.manager.query(
         `EXEC v3.sp_a123BuscarContactos @idsolicitud = ${solicitudv3.idsolicitud}`,
       )
@@ -479,19 +500,152 @@ export class SolicitudService {
     return new CustomResponse(new Message(mensaje, error))
   }
 
+  async validarClabeToku(dto: ValidarClabeTokuDto) {
+    try {
+      const headers = {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-api-key': this.TOKU_KEY,
+      }
+      const body = {
+        account_number: dto.clabe,
+        customer_identifier: dto.rfc,
+      }
+
+      const response = await axios.post(
+        'https://api.trytoku.com/bank-account-verification',
+        body,
+        { headers },
+      )
+
+      if (!response.data) {
+        throw new BadRequestException(
+          'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+        )
+      }
+      if (response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      if (
+        response.data.error ||
+        response.data.message !== 'OK' ||
+        !response.data.id_bank_account_verification
+      ) {
+        throw new BadRequestException('La cuenta CLABE o el RFC no son válidos')
+      }
+
+      const verificacionToku = this.verificacionTokuRepository.create({
+        clabeIntroducida: dto.clabe,
+        rfcIntroducido: dto.rfc,
+        idEvento: response.data.id_bank_account_verification,
+        status: 'PROCESSING',
+        idSolicitud: dto.idsolicitud,
+        fromV3: 1,
+      })
+      await this.verificacionTokuRepository.save(verificacionToku)
+    } catch (error) {
+      if (error.response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      throw new BadRequestException(
+        'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+      )
+    }
+  }
+
+  async crearDocComprobantePago({ idOrden, idSolicitud }: GuardarDocTokuDto) {
+    const { pdfUrl } = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
+
+    const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
+    const fileName = `${codeName}.${new Date().getTime()}.pdf`
+    const key = `${new Date().getFullYear()}/${idOrden}/${fileName}`
+
+    const docContent = {
+      id: this.COMPROBANTE_PAGO,
+      idOrden: idOrden,
+      idPersonal: 0,
+      nombreArchivo: fileName,
+      tamanoArchivo: 0,
+      web: 1,
+      s3: 1,
+      s3Key: key,
+      publicUrl: pdfUrl,
+    }
+
+    let document = await this.ordenDocRepository.findOneBy({
+      id: this.COMPROBANTE_PAGO,
+      idOrden,
+    })
+
+    if (document) {
+      document.publicUrl = pdfUrl
+      await this.ordenDocRepository.save(document)
+    } else {
+      const newDoc = this.ordenDocRepository.create(docContent)
+      await this.ordenDocRepository.save(newDoc)
+    }
+
+    return {
+      mensaje: {
+        mensaje: 'OK',
+        mostrar: 'NONE',
+        error: false,
+        detallemensaje: null,
+      },
+    }
+  }
+
   async guardarCuentaDomiciliacion(
     { solicitudv3, datos08cuenta01 }: GuardarCuentaDomiciliacionDto,
     user: User,
   ) {
-    const response2 = await this.manager.query(`
-      EXEC web.validaCuentaBancariaToku
-        @rfc = ${user.rfc},
-        @clabe = ${datos08cuenta01.clabe}
-      `)
+    try {
+      const headers = {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'x-api-key': this.TOKU_KEY,
+      }
+      const body = {
+        account_number: datos08cuenta01.clabe,
+        customer_identifier: user.rfc,
+      }
 
-    if (!response2.length || !response2[0].Message || response2[0].Message !== 'OK') {
-      return new CustomResponse(
-        new Message('La cuenta bancaria no pertenece al RFC introducido', true),
+      const response = await axios.post(
+        'https://api.trytoku.com/bank-account-verification',
+        body,
+        { headers },
+      )
+
+      if (!response.data) {
+        throw new BadRequestException(
+          'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
+        )
+      }
+      if (response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      if (
+        response.data.error ||
+        response.data.message !== 'OK' ||
+        !response.data.id_bank_account_verification
+      ) {
+        throw new BadRequestException('La cuenta CLABE o el RFC no son válidos')
+      }
+
+      const verificacionToku = this.verificacionTokuRepository.create({
+        clabeIntroducida: datos08cuenta01.clabe,
+        rfcIntroducido: user.rfc,
+        idEvento: response.data.id_bank_account_verification,
+        status: 'PROCESSING',
+        idSolicitud: solicitudv3.idsolicitud,
+      })
+      await this.verificacionTokuRepository.save(verificacionToku)
+    } catch (error) {
+      if (error.response.data.error === 'Invalid CLABE') {
+        throw new BadRequestException('La cuenta CLABE no es válida')
+      }
+      throw new BadRequestException(
+        'Ocurrió un error al validar tu cuenta, inténtalo más tarde',
       )
     }
 
@@ -666,6 +820,41 @@ export class SolicitudService {
       true,
     )
 
+    const responseProducto = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123EditarProducto
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @idproducto = ${this.ID_PRODUCTO},
+        @cantidad = 1,
+        @precio = ${datos11condiciones.importesolicitado},
+        @resultcode = @resultcode OUTPUT;
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (
+      !responseProducto.length ||
+      !responseProducto[0].resultcode ||
+      responseProducto[0].resultcode !== 1
+    ) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
+    const responseCalc = await this.manager.query(`
+      DECLARE @resultcode INT;
+      EXEC v3.sp_a123CalcularImportesSolicitud
+        @idsolicitud = ${solicitudv3.idsolicitud},
+        @resultcode = @resultcode OUTPUT;
+      SELECT @resultcode AS resultcode;
+      `)
+
+    if (
+      !responseCalc.length ||
+      !responseCalc[0].resultcode ||
+      responseCalc[0].resultcode !== 1
+    ) {
+      return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
+    }
+
     const response = await this.manager.query(`
       DECLARE @resultcode INT;
       EXEC v3.sp_a123GuardarCondiciones
@@ -705,14 +894,6 @@ export class SolicitudService {
       if (resultadoRegistrarOrden.resultcode !== 1) {
         return new CustomResponse(new Message(SolicitudService.BASE_ERROR_MESSAGE, true))
       }
-
-      // const solicitud = ''
-      // getSolicitudById
-      // mig_pasarOrden_3_AL_2_ByIdorden
-    } else {
-      // solicitud = getSolicitudById
-      // mig_actualizarCambiosOrden_3_AL_2_ByIdorden
-      // TODO: checar si es necesario migrar
     }
 
     const [solicitud] = await this.manager.query(
@@ -720,6 +901,13 @@ export class SolicitudService {
     )
 
     await this.actualizarTrainProcessFlash(11, solicitudv3.idsolicitud)
+    await this.manager.query(`
+        EXEC tmpmigracion.sp_9000_mig_actualizarCambiosOrden_3_AL_2_ByIdorden
+          @idorden = ${solicitud.idOrden},
+          @idpersonal = ${this.ID_PERSONAL};
+      `)
+
+    await this.s3Service.migrateTempDocs(solicitudv3.idsolicitud, solicitud.idOrden)
 
     return new CustomResponse(new Message('Orden guardada correctamente'), { solicitud })
   }

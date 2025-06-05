@@ -20,6 +20,8 @@ import { GuardarCondicionesOrdenDto } from './dto/requests/guardar-condiciones-o
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optionalJwt.guard'
 import { Auth, GetUser } from 'src/auth/decorators'
 import { User } from 'src/auth/entities/user.entity'
+import { ValidarClabeTokuDto } from './dto/validar-clabe-toku.dto'
+import { GuardarDocTokuDto } from './dto/guardar-doc-toku.dto'
 
 @UseGuards(OptionalJwtAuthGuard)
 @Controller('solicitud')
@@ -119,5 +121,15 @@ export class SolicitudController {
     @Body() guardarCondicionesOrdenDto: GuardarCondicionesOrdenDto,
   ) {
     return this.solicitudService.guardarCondicionesOrden(guardarCondicionesOrdenDto)
+  }
+
+  @Post('validar-clabe-toku')
+  validarClabeToku(@Body() clabeTokuDto: ValidarClabeTokuDto) {
+    return this.solicitudService.validarClabeToku(clabeTokuDto)
+  }
+
+  @Post('guardar-doc-toku')
+  guardarDocToku(@Body() guardarDocTokuDto: GuardarDocTokuDto) {
+    return this.solicitudService.crearDocComprobantePago(guardarDocTokuDto)
   }
 }

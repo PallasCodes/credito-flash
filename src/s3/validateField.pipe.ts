@@ -9,10 +9,10 @@ export class FileValidationPipe implements PipeTransform {
     'application/pdf',
     'image/jpg',
   ]
-  private readonly maxSize = 5 * 1024 * 1024 // 5 MB
+  private readonly maxSize = 10 * 1024 * 1024 // 10 MB
 
   transform(value: any) {
-    if (value instanceof User) return value
+    if (value instanceof User || typeof value === 'string') return value
 
     for (const fieldName in value) {
       const file = value[fieldName][0]
@@ -25,7 +25,7 @@ export class FileValidationPipe implements PipeTransform {
 
       if (file.size > this.maxSize) {
         throw new BadRequestException(
-          `El archivo es demasiado grande: ${file.originalname}. Tamaño máximo permitido de 5MB`,
+          `El archivo es demasiado grande: ${file.originalname}. Tamaño máximo permitido de 10MB`,
         )
       }
     }
