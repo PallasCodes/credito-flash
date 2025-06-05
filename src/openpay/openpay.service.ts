@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { EventoOpenpay } from './entities/evento-openpay.entity'
 import { EntityManager, Repository } from 'typeorm'
+
+import { EventoOpenpay } from './entities/evento-openpay.entity'
 
 @Injectable()
 export class OpenpayService {
@@ -13,8 +14,6 @@ export class OpenpayService {
   ) {}
 
   async handleWebhook(body: any) {
-    console.log(body)
-
     if (body.type === 'verification') {
       return { status: 'ok' }
     }
@@ -46,7 +45,6 @@ export class OpenpayService {
   }
 
   async insertMovimiento(payload: any) {
-    console.log('🚀 ~ OpenpayService ~ insertMovimiento ~ payload:', payload)
     await this.manager.query(`
       EXEC intermercado.dbo.sp_insertMovimientoOpenpay
         @idorden = ${payload.idorden},

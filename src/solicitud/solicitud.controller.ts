@@ -125,7 +125,6 @@ export class SolicitudController {
 
   @Post('validar-clabe-toku')
   validarClabeToku(@Body() clabeTokuDto: ValidarClabeTokuDto) {
-    console.log('toku')
     return this.solicitudService.validarClabeToku(clabeTokuDto)
   }
 

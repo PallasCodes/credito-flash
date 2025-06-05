@@ -18,7 +18,6 @@ export class S3Controller {
   constructor(private readonly s3Service: S3Service) {}
 
   @Post('upload')
-  // @Auth()
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'identificacionFrente', maxCount: 1 },
