@@ -132,7 +132,9 @@ export class S3Service {
   }
 
   private async uploadTokuPDf(idSolicitud: number, idOrden: number) {
-    const { pdfUrl } = await this.verifTokuRepository.findOneBy({ idSolicitud })
+    const verifToku = await this.verifTokuRepository.findOneBy({ idSolicitud })
+
+    if (!verifToku) return
 
     const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
     const fileName = `${codeName}.${new Date().getTime()}.pdf`
@@ -145,7 +147,7 @@ export class S3Service {
       id: this.COMPROBANTE_PAGO,
       idOrden,
       idPersonal: this.ID_PERSONAL,
-      publicUrl: pdfUrl,
+      publicUrl: verifToku.pdfUrl,
       s3: 1,
     }
 
