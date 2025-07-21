@@ -556,7 +556,7 @@ export class SolicitudService {
   async crearDocComprobantePago({ idOrden, idSolicitud }: GuardarDocTokuDto) {
     const result = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
 
-    if (!result.pdfUrl) {
+    if (!result || !result.pdfUrl) {
       return { mensaje: { mensaje: 'OK', error: false } }
     }
 
