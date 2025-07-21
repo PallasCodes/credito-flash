@@ -557,7 +557,7 @@ export class SolicitudService {
     const result = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
 
     if (!result || !result.pdfUrl) {
-      return { mensaje: { mensaje: 'OK', error: false } }
+      return { mensaje: { mensaje: 'OK', error: false, mostrar: 'NONE' } }
     }
 
     const { pdfUrl } = result
