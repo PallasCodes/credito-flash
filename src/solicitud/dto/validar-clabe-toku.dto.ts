@@ -1,4 +1,4 @@
-import { IsInt, IsString } from 'class-validator'
+import { IsInt, IsOptional, IsString } from 'class-validator'
 
 export class ValidarClabeTokuDto {
   @IsString()
@@ -9,4 +9,7 @@ export class ValidarClabeTokuDto {
 
   @IsInt()
   idsolicitud: number
+
+  @IsOptional()
+  domiciliacion: boolean
 }

@@ -554,7 +554,13 @@ export class SolicitudService {
   }
 
   async crearDocComprobantePago({ idOrden, idSolicitud }: GuardarDocTokuDto) {
-    const { pdfUrl } = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
+    const result = await this.verificacionTokuRepository.findOneBy({ idSolicitud })
+
+    if (!result.pdfUrl) {
+      return { mensaje: { mensaje: 'OK', error: false } }
+    }
+
+    const { pdfUrl } = result
 
     const codeName = `${idOrden}.${this.COMPROBANTE_PAGO}`
     const fileName = `${codeName}.${new Date().getTime()}.pdf`
